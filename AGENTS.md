@@ -22,3 +22,11 @@ App iOS en Swift y SwiftUI para asistir a instaladores electricistas habilitados
 - Compilar los cambios de la app cuando sea posible y ejecutar las pruebas relacionadas con los cálculos modificados.
 - Antes de confirmar cambios, revisar que no se incluyan contraseñas, tokens, certificados ni archivos generados por Xcode.
 - Resumir qué cambió, cómo se verificó y qué reglas normativas siguen pendientes de confirmar.
+
+## Legibilidad y documentación del código
+
+- Agregar `// MARK:` y comentarios/documentación breves en español en las partes importantes del dominio, reglas regulatorias y cálculos.
+- Explicar principalmente el propósito o el motivo de una lógica cuando no sea evidente al leer el código.
+- En cálculos, indicar brevemente qué magnitud se obtiene o qué criterio se aplica.
+- No comentar código trivial ni repetir en palabras lo que el código ya expresa claramente.
+- Priorizar comentarios cortos que permitan entender rápidamente el flujo al volver al código tiempo después.
