@@ -36,6 +36,8 @@ struct ContentView: View {
                     .font(.caption)
             }
             RoomsView(rooms: $form.rooms, grade: result.grade)
+            CircuitsView(plan: $form.circuitPlan, rooms: form.rooms, grade: result.grade,
+                         synchronizationFailed: form.pointSynchronizationFailed)
             Section("Referencia normativa") {
                 Text("\(PreliminaryElectrificationRule.slaRuleID) · \(PreliminaryElectrificationRule.ruleID)")
                 Text(PreliminaryElectrificationRule.source)

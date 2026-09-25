@@ -504,3 +504,14 @@ Datos básicos del proyecto
 → determinación del grado de electrificación preliminar.
 
 Esta primera funcionalidad deberá tener pruebas unitarias antes de continuar con las siguientes etapas.
+
+## Feature 003 implementada
+
+Después de ambientes, el proyecto permite elegir explícitamente la variante de
+circuitos mínimos, completar los tipos faltantes, crear circuitos adicionales,
+seleccionar la posición libre de GE Superior y distribuir los puntos IUG/TUG.
+Los módulos fijos permanecen pendientes de regla. El resumen muestra identificación,
+tipo, destino editable, bocas o una carga ACU y potencia declarada con su unidad.
+Las validaciones distinguen faltantes, exceso de bocas, puntos sin asignar,
+incompatibilidades y decisiones pendientes. La conformidad de composición mínima
+no representa conformidad integral. No se implementan cálculos de Feature 004.

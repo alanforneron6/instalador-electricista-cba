@@ -1,7 +1,18 @@
 import Foundation
 
 struct ProjectForm {
-    var rooms: [Room] = []
+    var rooms: [Room] = [] {
+        didSet { synchronizePoints() }
+    }
+    var circuitPlan = CircuitPlan()
+    private(set) var pointSynchronizationFailed = false
+
+    private mutating func synchronizePoints() {
+        do {
+            try CircuitEngine.synchronize(&circuitPlan, rooms: rooms)
+            pointSynchronizationFailed = false
+        } catch { pointSynchronizationFailed = true }
+    }
     var name = ""
     var coveredArea = ""
     var semiCoveredArea = ""
@@ -32,7 +43,7 @@ struct ProjectForm {
             id: projectID, name: trimmedName,
             coveredArea: try parse(coveredArea, field: "Superficie cubierta"),
             semiCoveredArea: try parse(semiCoveredArea, field: "Superficie semicubierta"),
-            rooms: rooms
+            rooms: rooms, circuitPlan: circuitPlan
         )
         let sla: SquareMeters
         do {

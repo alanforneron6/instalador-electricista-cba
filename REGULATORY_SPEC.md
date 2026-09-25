@@ -891,3 +891,90 @@ Las reglas particulares de cada prestador deberán mantenerse separadas de las r
 9. Codex no deberá buscar por su cuenta un valor faltante y convertirlo automáticamente en una regla VERIFIED.
 
 10. La seguridad tendrá prioridad frente a optimizaciones económicas o intentos de reducir artificialmente la demanda.
+
+---
+
+# FEATURE 003 — Circuitos y distribución de puntos
+
+## RULE-CIRCUITS-001 — implementación y alcance
+
+Se conserva el identificador existente (equivalente al nombre propuesto
+RULE-MIN-CIRCUITS-001), su estado VERIFIED y la referencia AEA 90364-7-770:2017,
+770.7.4, Tabla 770.7.II. Feature 003 implementa exclusivamente los mínimos y
+variantes ya documentados arriba. Los circuitos adicionales no son incumplimiento.
+La elección A/B se registra junto al GE; al cambiar de GE se pide una nueva
+selección cuando corresponda. No se eliminan circuitos ni asignaciones al cambiarla.
+La generación completa únicamente los tipos base faltantes y nunca elige la
+posición libre. Esta posición referencia un circuito concreto, que no puede
+contarse simultáneamente dentro de las posiciones base.
+
+## RULE-CIRCUIT-CLASSIFICATION-001
+
+Estado: VERIFIED para la clasificación expresamente confirmada en Feature 003.
+Fuente: AEA 90364-7-770, edición 2017; especificación de Feature 003 aportada por
+el titular del proyecto. Referencia puntual de clasificación pendiente de cotejo.
+IUG/TUG: uso general. TUE: uso especial. ACU: uso específico, una carga única.
+No se extienden a ACU los límites de bocas de otros tipos.
+
+## RULE-CIRCUIT-POINT-LIMIT-001
+
+Estado: VERIFIED para los valores expresamente confirmados en Feature 003.
+Fuente: AEA 90364-7-770, edición 2017; valores confirmados por el titular en
+la especificación de Feature 003. Sección/tabla puntual: pendiente de cotejo;
+no atribuir estos límites a la Tabla 770.7.II de mínimos por GE.
+Máximo: 15 bocas por circuito IUG, TUG o TUE. ACU: no aplica esta regla.
+Tests: 15 conforme, 16 excedido para cada tipo; ACU sin máximo de bocas;
+entrada negativa inválida. El máximo no es una cantidad mínima de puntos.
+
+## RULE-CIRCUIT-POINT-COMPATIBILITY-001
+
+Estado: VERIFIED para IUG → IUG y TUG → TUG, conforme al alcance explícito de
+Feature 003; PENDING_INTERPRETATION para módulos de electrodomésticos fijos.
+Fuente: clasificación AEA 90364-7-770:2017 y RULE-ROOM-POINTS-001
+(770.7.5, Tabla 770.7.III). Falta referencia puntual de conexión de módulos.
+No se permite cruzar IUG/TUG ni reutilizar puntos TUG en TUE/ACU.
+Los módulos fijos se conservan individualizados, sin asignación automática y con
+estado pendiente. Los puntos propios de TUE todavía no están modelados.
+
+## RULE-FREE-CIRCUIT-ELIGIBILITY-001
+
+Estado: PENDING_INTERPRETATION para condiciones particulares TUE/ACU.
+Fuente: AEA 90364-7-770:2017, 770.7.4, Tabla 770.7.II.
+La posición libre de GE Superior no presupone un tipo. El instalador puede
+referenciar un circuito IUG/TUG/TUE/ACU. IUG/TUG satisfacen la composición;
+para TUE/ACU se muestra revisión normativa pendiente, sin declarar conformidad
+integral ni prohibición. Falta confirmar las condiciones específicas aplicables.
+
+## Carga declarada ACU — decisión de dominio
+
+Una carga identificable por destino y una declaración con valor finito >= 0 y
+unidad explícita VA/W/kW/HP. Cero es válido; no se inventa prohibición normativa.
+Se conserva exactamente el valor/unidad. Sólo VA constituye potencia aparente
+declarada; W/kW no se equiparan a VA. HP no se normaliza eléctricamente.
+Feature 004 deberá modelar los parámetros necesarios (factor de potencia y,
+según corresponda, rendimiento y significado de la potencia de placa), sin
+valores por defecto inventados. No se implementa DPMS ni conversión eléctrica.
+
+## RULE-CONDUCTOR-MINIMUM-001
+
+Estado: PENDING_SOURCE. Regla futura, sin lógica de selección en Feature 003.
+Fuente: material de referencia aportado por el titular del proyecto; falta
+identificar fuente primaria, edición y sección/tabla exactas antes de verificar.
+Valores a cotejar: principal 4 mm²; seccional 2,5 mm²; IUG 1,5 mm²;
+TUG 2,5 mm²; uso especial 2,5 mm²; uso específico excepto MBTF 2,5 mm²;
+uso específico MBTF 1,5 mm²; PE 2,5 mm².
+La sección mínima es un piso reglamentario, no una selección automática.
+La futura selección considerará Ib, Iz, método de instalación, factores de
+corrección, agrupamiento, temperatura, caída de tensión, sección mínima y
+protección. Complementa RULE-CONDUCTOR-001, sin cambiar su estado pendiente.
+
+## Decisiones técnicas de Feature 003
+
+Los resúmenes UtilizationPoints siguen siendo la fuente de cantidades por ambiente.
+La individualización conserva UUID, ambiente, tipo y ordinal; al reducir cantidades
+retira los ordinales finales, al quitar un ambiente elimina sus puntos, y al quitar
+un circuito deja sus puntos sin asignar. Recalcular no cambia identidades.
+La app continúa en memoria, sin persistencia añadida en esta feature.
+Se limita la materialización a 100.000 puntos por recursos de la aplicación:
+este valor NO es normativo. Ante exceso se conserva el resumen y se suspende
+la revisión de asignaciones hasta que pueda sincronizarse nuevamente.
