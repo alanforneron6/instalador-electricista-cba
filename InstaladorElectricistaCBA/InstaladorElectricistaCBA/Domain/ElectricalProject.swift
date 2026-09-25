@@ -5,6 +5,7 @@ nonisolated struct ElectricalProject: Identifiable {
     let name: String
     let coveredArea: SquareMeters
     let semiCoveredArea: SquareMeters
+    var rooms: [Room] = []
 }
 
 nonisolated enum ElectrificationGrade {

@@ -1,6 +1,7 @@
 import Foundation
 
 struct ProjectForm {
+    var rooms: [Room] = []
     var name = ""
     var coveredArea = ""
     var semiCoveredArea = ""
@@ -30,7 +31,8 @@ struct ProjectForm {
         let project = ElectricalProject(
             id: projectID, name: trimmedName,
             coveredArea: try parse(coveredArea, field: "Superficie cubierta"),
-            semiCoveredArea: try parse(semiCoveredArea, field: "Superficie semicubierta")
+            semiCoveredArea: try parse(semiCoveredArea, field: "Superficie semicubierta"),
+            rooms: rooms
         )
         let sla: SquareMeters
         do {

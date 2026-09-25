@@ -35,6 +35,7 @@ struct ContentView: View {
                 Text("Grado preliminar; deberá verificarse en etapas posteriores.")
                     .font(.caption)
             }
+            RoomsView(rooms: $form.rooms, grade: result.grade)
             Section("Referencia normativa") {
                 Text("\(PreliminaryElectrificationRule.slaRuleID) · \(PreliminaryElectrificationRule.ruleID)")
                 Text(PreliminaryElectrificationRule.source)

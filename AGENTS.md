@@ -4,6 +4,9 @@
 App iOS en Swift y SwiftUI para asistir a instaladores electricistas habilitados de Córdoba en el diseño y cálculo de instalaciones. Es un proyecto personal, independiente de los repositorios y herramientas de Naranja X.
 
 ## Desarrollo
+- Entorno: Xcode 27.
+- Minimum deployment target de iOS: 26.0.
+- No usar APIs exclusivas de iOS 27 salvo decisión explícita.
 - Trabajar únicamente dentro de este repositorio.
 - Mantener los modelos y cálculos separados de las vistas SwiftUI.
 - Empezar con una estructura simple; agregar módulos o dependencias solo cuando aporten una necesidad concreta.
