@@ -9,6 +9,7 @@ struct CircuitsView: View {
     @State private var destination = ""
     @State private var power = ""
     @State private var unit: PowerUnit = .voltAmpere
+    @State private var powerFactor = ""
     @State private var errorMessage: String?
 
     var body: some View {
@@ -53,7 +54,10 @@ struct CircuitsView: View {
                 Picker("Unidad", selection: $unit) {
                     ForEach(PowerUnit.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }
-                Text("Una única carga. W, kW y HP se conservan sin conversión a VA.").font(.caption)
+                if unit != .voltAmpere {
+                    TextField("Factor de potencia (vacío = pendiente)", text: $powerFactor)
+                }
+                Text("La declaración original se conserva. W/kW/HP requieren fp explícito para calcular VA; HP usa el criterio del proyecto indicado en el resultado.").font(.caption)
             }
             Button("Agregar circuito") {
                 perform {
@@ -65,14 +69,15 @@ struct CircuitsView: View {
                         }
                         load = try DeclaredLoad(value: value, unit: unit)
                     } else { load = nil }
-                    try CircuitEngine.addCircuit(to: &plan, type: type, destination: destination, load: load)
-                    destination = ""; power = ""
+                    let factor = type == .acu && unit != .voltAmpere ? try CircuitDemandForm.parsePowerFactor(powerFactor) : nil
+                    try CircuitEngine.addCircuit(to: &plan, type: type, destination: destination, load: load, powerFactor: factor)
+                    destination = ""; power = ""; powerFactor = ""
                 }
             }
             if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
         }
         Section("Resumen de circuitos") {
-            Text("Circuito · Tipo · Destino · Bocas · Carga declarada").font(.caption)
+            Text("Circuito · Tipo · Destino · Bocas · Carga declarada · DPMS").font(.caption)
             ForEach($plan.circuits) { $circuit in
                 VStack(alignment: .leading) {
                     Text("C\(circuit.number) · \(circuit.type.rawValue.uppercased())").font(.headline)
@@ -84,9 +89,22 @@ struct CircuitsView: View {
                     }
                     if let load = circuit.declaredLoad { Text("\(load.value.formatted()) \(load.unit.rawValue)") }
                     else { Text("Carga declarada: —") }
+                    if circuit.type == .acu, circuit.declaredLoad?.unit != .voltAmpere {
+                        Text("Factor de potencia: \(circuit.powerFactor.map { $0.value.formatted() } ?? "pendiente")")
+                    }
+                    CircuitDemandEditor(circuit: $circuit)
+                    if !synchronizationFailed {
+                        CircuitDemandDetails(result: DemandEngine.circuit(circuit, points: plan.points))
+                    } else { Text("DPMS pendiente: no se pudieron sincronizar los puntos.") }
                     Button("Quitar C\(circuit.number)", role: .destructive) { CircuitEngine.removeCircuit(circuit.id, from: &plan) }
                 }
             }
+        }
+        if !synchronizationFailed && !plan.circuits.isEmpty {
+            ProjectDemandView(result: DemandEngine.project(plan: plan, grade: grade),
+                              hasUnassignedPoints: CircuitEngine.validate(plan, grade: grade).issues.contains {
+                if case .pointUnassigned = $0 { return true }; return false
+            })
         }
         Section("Distribución de puntos") {
             if synchronizationFailed {
@@ -124,6 +142,7 @@ struct CircuitsView: View {
     }
     private func perform(_ action: () throws -> Void) {
         do { try action(); errorMessage = nil }
+        catch let error as CircuitDemandForm.InputError { errorMessage = error.localizedDescription }
         catch { errorMessage = "No se pudo completar. Revisá selección, destino y potencia finita mayor o igual a cero." }
     }
     private func minimumMessage(_ status: MinimumCircuitsRule.Status) -> String {

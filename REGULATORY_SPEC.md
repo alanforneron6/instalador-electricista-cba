@@ -950,10 +950,9 @@ integral ni prohibición. Falta confirmar las condiciones específicas aplicable
 Una carga identificable por destino y una declaración con valor finito >= 0 y
 unidad explícita VA/W/kW/HP. Cero es válido; no se inventa prohibición normativa.
 Se conserva exactamente el valor/unidad. Sólo VA constituye potencia aparente
-declarada; W/kW no se equiparan a VA. HP no se normaliza eléctricamente.
-Feature 004 deberá modelar los parámetros necesarios (factor de potencia y,
-según corresponda, rendimiento y significado de la potencia de placa), sin
-valores por defecto inventados. No se implementa DPMS ni conversión eléctrica.
+declarada; W/kW no se equiparan a VA. Feature 003 no normaliza HP ni calcula DPMS.
+Feature 004 incorpora fp explícito y el criterio de conversión HP × 746 solicitado
+por el titular; ver CALC-APPARENT-POWER-001. No se supone rendimiento.
 
 ## RULE-CONDUCTOR-MINIMUM-001
 
@@ -978,3 +977,110 @@ La app continúa en memoria, sin persistencia añadida en esta feature.
 Se limita la materialización a 100.000 puntos por recursos de la aplicación:
 este valor NO es normativo. Ante exceso se conserva el resumen y se suspende
 la revisión de asignaciones hasta que pueda sincronizarse nuevamente.
+
+
+---
+
+# FEATURE 004 — Cargas y DPMS
+
+## CALC-APPARENT-POWER-001
+
+Estado: criterio de cálculo del proyecto, explícitamente aprobado por el titular
+para Feature 004; no se atribuye a una prescripción AEA/ERSeP.
+Fuente: especificación de Feature 004. Edición/referencia AEA: no aplica a esta
+convención de conversión; no se inventa una cita normativa.
+
+Se conserva DeclaredLoad como dato original. Resultado: ApparentPower en VA.
+- VA: S = valor declarado, sin fp.
+- W: S = W/fp.
+- kW: P = kW × 1000 W/kW; S = P/fp.
+- HP: criterio adoptado por el proyecto P = HP × 746 W/HP; S = P/fp.
+
+PowerFactor debe ser finito y cumplir 0 < fp <= 1. No tiene valor por defecto.
+No se aplica rendimiento/eficiencia a HP. Esta convención no pretende resolver
+un modelo general de motores ni inferir parámetros de placa no ingresados.
+W/kW/HP sin fp producen missingPowerFactor, incluso para valor declarado cero.
+VA no requiere ni utiliza fp. Valores no finitos en resultados producen error
+numérico estructurado, no valores válidos ni sustitución por cero.
+
+## RULE-DPMS-IUG-001
+
+Estado: VERIFIED, desglose de RULE-DPMS-001 ya documentada.
+Fuente: AEA 90364-7-770. Edición: 2017.
+Referencia: 770.8.1, Tabla 770.8.I.
+Alcance implementado: IUG residencial sin tomacorrientes derivados.
+Base = bocas IUG asignadas × 60 VA/boca.
+DPMS mínima = base × 2/3. No se fija 600 VA por circuito.
+Se conserva por separado una demanda conocida opcional y se adopta el mayor
+entre dicha demanda y el mínimo. Una cantidad negativa de bocas es inválida.
+IUG con tomacorrientes derivados sigue fuera del modelo actual; no se extiende
+la fórmula implementada a ese subtipo.
+
+## RULE-DPMS-TUG-001 / RULE-DPMS-TUE-001
+
+Estado: VERIFIED, desgloses de RULE-DPMS-001 ya documentada.
+Fuente: AEA 90364-7-770. Edición: 2017.
+Referencia: 770.8.1, Tabla 770.8.I.
+Mínimo TUG = 2200 VA/circuito. Mínimo TUE = 3300 VA/circuito.
+Se adopta el mayor entre mínimo y demanda conocida opcional en VA.
+Estos mínimos no son techos para demandas conocidas. No se aplican a ACU.
+TUE conserva su mínimo aun cuando sus puntos específicos no estén modelados.
+
+## RULE-SIMULTANEITY-001 — aplicación en Feature 004
+
+Estado y referencia conservados: VERIFIED; AEA 90364-7-770:2017,
+770.8.1, Tabla 770.8.II. La fuente, edición y referencia puntual estaban
+registradas en este documento antes de Feature 004; no se agregó una cita nueva.
+Correspondencia con RULE-CIRCUITS-001: mínimo 1,0; medio 0,8; elevado 0,7;
+superior 0,6. Se usa el GE, no la cantidad de circuitos instalados.
+
+Base GE = suma de DPMS adoptadas de todos los IUG/TUG/TUE modelados,
+incluidos los adicionales. DPMS GE = base GE × coeficiente del GE.
+ACU queda fuera de esta base y de esta multiplicación.
+
+## RULE-TOTAL-DEMAND-001 / RULE-SPECIFIC-LOAD-DEMAND-001 — alcance actual
+
+Se conserva RULE-TOTAL-DEMAND-001 VERIFIED, AEA 90364-7-770:2017,
+770.8.3.1, y RULE-SPECIFIC-LOAD-DEMAND-001 PENDING_INTERPRETATION,
+misma fuente/edición, 770.8.2.
+
+Decisión explícita del titular para Feature 004: cuando un ACU sea resoluble,
+su demanda considerada es su potencia aparente, sin reducciones. Se mantienen
+magnitudes separadas en el resultado para el futuro tratamiento de Ku/Ks.
+No se crean coeficientes específicos editables ni se infieren valores.
+El tratamiento completo de Ku/Ks queda pendiente; esta implementación no lo
+convierte en una regla normativa definitiva.
+
+Total resoluble actual = DPMS GE + suma de demandas consideradas de ACU
+resolubles. Si hay ACU pendientes se muestra como subtotal incompleto y el total
+completo queda pendiente, identificando los circuitos con carga/fp faltante.
+Como condición de integridad del proyecto (no una nueva fórmula normativa),
+los puntos IUG/TUG sin asignar también impiden informar un total completo:
+se devuelve unassignedPoints reutilizando CircuitEngine.validate. Se conserva el
+subtotal de lo resoluble, sin inferir asignaciones ni sumar bocas arbitrariamente.
+Asignaciones incompatibles o a circuitos inexistentes producen incompatibleAssignments.
+Los módulos fijos pendientes de regla, sin asignación exigible, no bloquean el total.
+La traza conserva entradas, base, mínimo, demanda conocida, demanda adoptada,
+conversión de carga, coeficiente GE, aportes específicos e IDs de regla.
+
+## RULE-CIRCUIT-POINT-LIMIT-SHARED-CONDUIT-001
+
+Estado: PENDING_SOURCE / PENDING_INTERPRETATION.
+Fuente/edición/sección puntual: pendientes de cotejo. Origen: requisito futuro
+identificado por el titular en Feature 004.
+Cuando varios circuitos compartan una canalización, el máximo aplicable de bocas
+puede cambiar. El dominio todavía no modela canalizaciones, por lo que no se
+infiere ese contexto ni se reduce el máximo. RULE-CIRCUIT-POINT-LIMIT-001
+permanece sin cambios: 15 para IUG/TUG/TUE, sin aplicar ese límite a ACU.
+Resolver con la futura feature de canalizaciones/agrupamiento, con fuente y
+condiciones de aplicación confirmadas.
+
+## Límites de implementación
+
+La revisión de mínimos, asignaciones y reglas pendientes de Feature 003 sigue
+independiente del resultado aritmético. Calcular DPMS no certifica conformidad.
+Los módulos fijos siguen pendientes de compatibilidad: no se suman como bocas
+ni se convierten artificialmente en cargas ACU. Sin sincronización de puntos,
+la UI no presenta resultados calculados sobre el estado anterior.
+No se calcula Ib ni suministro, conductores, Iz, protecciones, caída de tensión,
+Ku/Ks editables, canalizaciones o agrupamiento. No se implementa Feature 005.

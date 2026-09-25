@@ -514,4 +514,32 @@ Los módulos fijos permanecen pendientes de regla. El resumen muestra identifica
 tipo, destino editable, bocas o una carga ACU y potencia declarada con su unidad.
 Las validaciones distinguen faltantes, exceso de bocas, puntos sin asignar,
 incompatibilidades y decisiones pendientes. La conformidad de composición mínima
-no representa conformidad integral. No se implementan cálculos de Feature 004.
+no representa conformidad integral. Los cálculos de cargas y DPMS se incorporan en Feature 004.
+
+## Feature 004 — Cargas y DPMS
+
+- Se conserva la carga original ACU (valor y unidad). VA es potencia aparente
+  directa; W, kW y HP requieren factor de potencia explícito, finito, 0 < fp <= 1.
+- El criterio de conversión de este proyecto es HP × 746 W/HP y S = P/fp;
+  no se incorpora rendimiento ni un fp por defecto.
+- Cada circuito presenta bocas, base, mínimo reglamentario, demanda conocida
+  cuando exista y DPMS adoptada. IUG usa el alcance sin tomacorrientes derivados.
+- IUG/TUG/TUE admiten una demanda conocida opcional en VA, comparable con el
+  mínimo; se adopta el mayor. No se confunde con la suma de potencias de placa.
+- Se pueden editar carga y fp de un ACU existente sin cambiar su identidad ni
+  reemplazar su declaración por el resultado de la conversión.
+- El resumen separa base IUG/TUG/TUE, coeficiente GE, DPMS GE, cargas específicas
+  resolubles y total. ACU no recibe el coeficiente GE ni reducciones Ku/Ks.
+- Los errores y datos faltantes son estados tipados. Si un ACU no tiene carga o
+  fp necesario, se muestra el subtotal resoluble como incompleto y el total
+  queda pendiente. Un desbordamiento no se convierte en cero ni infinito válido.
+- Los cálculos individuales usan las bocas asignadas a cada circuito. Si quedan
+  puntos IUG/TUG sin asignar, el total completo devuelve unassignedPoints y sólo
+  puede mostrarse el subtotal resoluble como incompleto, sin asignar puntos
+  automáticamente. Asignaciones incompatibles o a circuitos inexistentes producen
+  incompatibleAssignments. Los módulos fijos pendientes de regla no bloquean
+  por sí solos la DPMS ni se cuentan como bocas/cargas. La DPMS no declara
+  conformidad integral del proyecto.
+- No se calcula Ib, suministro, conductores, Iz, protecciones, caída de tensión,
+  canalizaciones, agrupamiento, diagramas ni PDF; no se implementa Feature 005.
+  El GE sigue siendo preliminar, sin reclasificación automática por DPMS.

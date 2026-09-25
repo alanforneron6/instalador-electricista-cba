@@ -22,7 +22,7 @@ nonisolated struct DeclaredLoad: Equatable {
         self.value = value
         self.unit = unit
     }
-    // Only an explicitly declared apparent power is available for now.
+    // Sólo refleja VA declarados; las conversiones no reemplazan el dato original.
     var declaredVoltAmperes: Double? { unit == .voltAmpere ? value : nil }
 }
 
@@ -31,14 +31,25 @@ nonisolated struct Circuit: Identifiable, Equatable {
     let number: Int
     let type: CircuitType
     var destination: String
-    // A single optional declaration, never an array of loads or a boca count.
+    // Una única carga ACU; su potencia no representa una cantidad de bocas.
     private(set) var declaredLoad: DeclaredLoad?
-    enum ValidationError: Error { case invalidNumber, loadOnNonACU }
-    init(id: UUID = UUID(), number: Int, type: CircuitType, destination: String = "", declaredLoad: DeclaredLoad? = nil) throws {
+    private(set) var powerFactor: PowerFactor?
+    private(set) var knownDemand: ApparentPower?
+    enum ValidationError: Error { case invalidNumber, loadOnNonACU, knownDemandOnACU }
+    init(id: UUID = UUID(), number: Int, type: CircuitType, destination: String = "",
+         declaredLoad: DeclaredLoad? = nil, powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil) throws {
         guard number > 0 else { throw ValidationError.invalidNumber }
-        guard type == .acu || declaredLoad == nil else { throw ValidationError.loadOnNonACU }
+        guard type == .acu || (declaredLoad == nil && powerFactor == nil) else { throw ValidationError.loadOnNonACU }
+        guard type != .acu || knownDemand == nil else { throw ValidationError.knownDemandOnACU }
         self.id = id; self.number = number; self.type = type
         self.destination = destination; self.declaredLoad = declaredLoad
+        self.powerFactor = powerFactor; self.knownDemand = knownDemand
+    }
+
+    // La edición reutiliza las validaciones y conserva la identidad y las asignaciones.
+    mutating func updateDemand(declaredLoad: DeclaredLoad?, powerFactor: PowerFactor?, knownDemand: ApparentPower?) throws {
+        self = try Circuit(id: id, number: number, type: type, destination: destination,
+                           declaredLoad: declaredLoad, powerFactor: powerFactor, knownDemand: knownDemand)
     }
 }
 
