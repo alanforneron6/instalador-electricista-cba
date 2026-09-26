@@ -14,7 +14,7 @@ struct RoomForm {
             switch self {
             case .invalidName: "Ingresá el nombre del ambiente."
             case .invalidDimension: "Ingresá una dimensión finita mayor o igual a cero, sin separador de miles."
-            case .invalidCount: "Los puntos proyectados deben ser cantidades enteras mayores o iguales a cero."
+            case .invalidCount: "Las cantidades proyectadas deben ser enteros mayores o iguales a cero."
             case .missingDimension: "Falta la dimensión requerida para evaluar este ambiente con el grado actual."
             case .outOfRange: "La dimensión excede el rango de cálculo admitido."
             }
@@ -67,16 +67,6 @@ extension RoomType {
         case .coveredHallway: "Pasillo cubierto"
         case .laundry: "Lavadero"
         case .semiCoveredOrOutdoorPassage: "Balcón / galería / semicubierto"
-        }
-    }
-}
-
-extension UtilizationPointKind {
-    var displayName: String {
-        switch self {
-        case .generalLighting: "IUG"
-        case .generalUseOutlet: "TUG"
-        case .fixedApplianceModule: "Módulos de electrodomésticos fijos"
         }
     }
 }

@@ -58,10 +58,22 @@ nonisolated struct CircuitSelection: Equatable {
     let grade: ElectrificationGrade
     let variant: CircuitVariant
 }
+// Sólo bocas físicas distribuibles; los módulos se conservan en el resumen del ambiente.
+nonisolated enum CircuitPointKind: CaseIterable, Hashable {
+    case generalLighting, generalUseOutlet
+
+    var roomKind: UtilizationPointKind {
+        switch self {
+        case .generalLighting: .generalLighting
+        case .generalUseOutlet: .generalUseOutlet
+        }
+    }
+}
+
 nonisolated struct UtilizationPoint: Identifiable, Equatable {
     let id: UUID
     let roomID: UUID
-    let kind: UtilizationPointKind
+    let kind: CircuitPointKind
     let ordinal: Int
     var circuitID: UUID?
 }

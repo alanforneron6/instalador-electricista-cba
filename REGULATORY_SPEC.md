@@ -279,7 +279,14 @@ Cocina:
 - GE elevado: 2 IUG; 3 bocas TUG + 3 módulos para electrodomésticos de ubicación fija.
 - GE superior: 2 IUG; 4 bocas TUG + 3 módulos para electrodomésticos de ubicación fija.
 
-Los módulos destinados a electrodomésticos de ubicación fija deben modelarse separadamente de la cantidad de bocas para no perder esa distinción normativa.
+Los módulos destinados a electrodomésticos de ubicación fija son equipamiento de
+los tomacorrientes de cocina y pueden compartir una boca con otros tomacorrientes.
+Se validan separadamente de las bocas: 3 bocas TUG + 2 módulos adicionales no
+equivalen a 5 bocas TUG. Los módulos adicionales se materializan dentro de esas
+3 bocas (por ejemplo, 2 + 2 + 1 módulos/tomacorrientes, 5 en total).
+No constituyen por sí mismos circuitos ni cargas específicas.
+Aclaración semántica confirmada por el titular en esta revisión, con la misma
+referencia AEA 90364-7-770:2017, 770.7.5, Tabla 770.7.III.
 
 Baño:
 - IUG = 1.
@@ -929,12 +936,14 @@ entrada negativa inválida. El máximo no es una cantidad mínima de puntos.
 ## RULE-CIRCUIT-POINT-COMPATIBILITY-001
 
 Estado: VERIFIED para IUG → IUG y TUG → TUG, conforme al alcance explícito de
-Feature 003; PENDING_INTERPRETATION para módulos de electrodomésticos fijos.
+Feature 003. Se aplica exclusivamente a bocas distribuibles, no a módulos.
 Fuente: clasificación AEA 90364-7-770:2017 y RULE-ROOM-POINTS-001
-(770.7.5, Tabla 770.7.III). Falta referencia puntual de conexión de módulos.
+(770.7.5, Tabla 770.7.III).
 No se permite cruzar IUG/TUG ni reutilizar puntos TUG en TUE/ACU.
-Los módulos fijos se conservan individualizados, sin asignación automática y con
-estado pendiente. Los puntos propios de TUE todavía no están modelados.
+Los módulos se conservan como cantidades del ambiente; no se individualizan como
+bocas ni tienen compatibilidad de circuito pendiente. Se elimina el anterior
+pendiente, que provenía de tratarlos erróneamente como bocas adicionales.
+Los puntos propios de TUE todavía no están modelados.
 
 ## RULE-FREE-CIRCUIT-ELIGIBILITY-001
 
@@ -970,7 +979,7 @@ protección. Complementa RULE-CONDUCTOR-001, sin cambiar su estado pendiente.
 ## Decisiones técnicas de Feature 003
 
 Los resúmenes UtilizationPoints siguen siendo la fuente de cantidades por ambiente.
-La individualización conserva UUID, ambiente, tipo y ordinal; al reducir cantidades
+La individualización sólo abarca bocas IUG/TUG y conserva UUID, ambiente, tipo y ordinal; al reducir cantidades
 retira los ordinales finales, al quitar un ambiente elimina sus puntos, y al quitar
 un circuito deja sus puntos sin asignar. Recalcular no cambia identidades.
 La app continúa en memoria, sin persistencia añadida en esta feature.
@@ -1059,7 +1068,7 @@ los puntos IUG/TUG sin asignar también impiden informar un total completo:
 se devuelve unassignedPoints reutilizando CircuitEngine.validate. Se conserva el
 subtotal de lo resoluble, sin inferir asignaciones ni sumar bocas arbitrariamente.
 Asignaciones incompatibles o a circuitos inexistentes producen incompatibleAssignments.
-Los módulos fijos pendientes de regla, sin asignación exigible, no bloquean el total.
+Los módulos de cocina no generan puntos distribuibles ni demanda independiente y no bloquean el total.
 La traza conserva entradas, base, mínimo, demanda conocida, demanda adoptada,
 conversión de carga, coeficiente GE, aportes específicos e IDs de regla.
 
@@ -1079,7 +1088,7 @@ condiciones de aplicación confirmadas.
 
 La revisión de mínimos, asignaciones y reglas pendientes de Feature 003 sigue
 independiente del resultado aritmético. Calcular DPMS no certifica conformidad.
-Los módulos fijos siguen pendientes de compatibilidad: no se suman como bocas
+Los módulos de cocina son equipamiento del ambiente: no se suman como bocas
 ni se convierten artificialmente en cargas ACU. Sin sincronización de puntos,
 la UI no presenta resultados calculados sobre el estado anterior.
 No se calcula Ib ni suministro, conductores, Iz, protecciones, caída de tensión,

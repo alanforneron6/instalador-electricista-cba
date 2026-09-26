@@ -1,12 +1,14 @@
 import Foundation
 
 struct CircuitDemandForm {
+    var destination: String
     var declaredValue = ""
     var unit: PowerUnit = .voltAmpere
     var powerFactor = ""
     var knownDemandVA = ""
 
     init(circuit: Circuit) {
+        destination = circuit.destination
         if let load = circuit.declaredLoad {
             declaredValue = String(load.value)
             unit = load.unit
@@ -38,6 +40,7 @@ struct CircuitDemandForm {
             known = try Self.optionalNumber(knownDemandVA).map { try ApparentPower(voltAmperes: $0) }
         }
         try circuit.updateDemand(declaredLoad: load, powerFactor: factor, knownDemand: known)
+        if circuit.type == .acu { circuit.destination = destination }
     }
 
     static func parsePowerFactor(_ text: String) throws -> PowerFactor? {

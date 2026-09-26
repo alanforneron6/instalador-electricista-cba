@@ -44,7 +44,7 @@ nonisolated enum DemandEngine {
             if case .success(let value) = $0.calculation { return .success(value.adoptedDemand) }
             return nil
         })
-        // Reutilizamos la validación: los módulos pendientes de regla no exigen asignación.
+        // Reutilizamos la validación de las bocas distribuibles del plan.
         let issues = CircuitEngine.validate(plan, grade: grade).issues
         let total: Result<ApparentPower, DemandCalculationError>
         if issues.contains(where: {

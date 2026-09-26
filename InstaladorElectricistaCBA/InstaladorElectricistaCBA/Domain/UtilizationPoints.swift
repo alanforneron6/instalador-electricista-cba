@@ -1,3 +1,4 @@
+// Cantidades y requisitos del ambiente: distinguen bocas de módulos de tomacorriente.
 nonisolated enum UtilizationPointKind: CaseIterable, Hashable {
     case generalLighting, generalUseOutlet, fixedApplianceModule
 }

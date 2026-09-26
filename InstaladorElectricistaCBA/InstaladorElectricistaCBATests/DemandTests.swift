@@ -197,8 +197,8 @@ struct DemandEngineTests {
         #expect(result.specificLoads.isEmpty)
     }
 
-    @Test(arguments: [UtilizationPointKind.generalLighting, .generalUseOutlet])
-    func unassignedPointsPreventCompleteTotalWithoutMutatingPlan(kind: UtilizationPointKind) throws {
+    @Test(arguments: [CircuitPointKind.generalLighting, .generalUseOutlet])
+    func unassignedPointsPreventCompleteTotalWithoutMutatingPlan(kind: CircuitPointKind) throws {
         var project = try mediumProject()
         let completePlan = project.circuitPlan
         #expect(try DemandEngine.project(plan: completePlan, grade: .medium).total.get().voltAmperes == 4000)
@@ -244,9 +244,12 @@ struct DemandEngineTests {
         #expect(result.total == .failure(.incompatibleAssignments))
     }
 
-    @Test func pendingModuleDoesNotAddBocasOrInventACULoad() throws {
+    @Test func roomModulesDoNotAddBocasOrInventACULoad() throws {
         var project = try mediumProject()
-        project.circuitPlan.points.append(.init(id: UUID(), roomID: UUID(), kind: .fixedApplianceModule, ordinal: 1))
+        var counts = UtilizationPoints()
+        try counts.setCount(2, for: .fixedApplianceModule)
+        project.rooms.append(Room(name: "Cocina", type: .kitchen, projectedPoints: counts))
+        try CircuitEngine.synchronize(&project.circuitPlan, rooms: project.rooms)
         let originalPlan = project.circuitPlan
         let result = DemandEngine.project(plan: project.circuitPlan, grade: .medium)
         #expect(try result.total.get().voltAmperes == 4000)

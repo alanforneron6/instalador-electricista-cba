@@ -3,7 +3,6 @@ import Foundation
 nonisolated enum CircuitIssue: Equatable {
     case pointUnassigned(UUID)
     case incompatibleAssignment(point: UUID, circuit: UUID)
-    case pointRulePending(UUID)
     case missingCircuit(point: UUID)
     case pointLimit(circuit: UUID, maximum: Int, actual: Int)
     case acuLoadMissing(UUID)
@@ -22,18 +21,18 @@ nonisolated enum CircuitEngine {
     static func synchronize(_ plan: inout CircuitPlan, rooms: [Room]) throws {
         var total = 0
         for room in rooms {
-            for kind in UtilizationPointKind.allCases {
-                let count = room.projectedPoints.count(for: kind)
+            for kind in CircuitPointKind.allCases {
+                let count = room.projectedPoints.count(for: kind.roomKind)
                 guard count <= maximumMaterializedPoints - total else { throw OperationError.tooManyPoints }
                 total += count
             }
         }
         var points: [UtilizationPoint] = []
         for room in rooms {
-            for kind in UtilizationPointKind.allCases {
+            for kind in CircuitPointKind.allCases {
                 let existing = plan.points.filter { $0.roomID == room.id && $0.kind == kind }
                 let byOrdinal = Dictionary(existing.map { ($0.ordinal, $0) }, uniquingKeysWith: { first, _ in first })
-                for index in 0..<room.projectedPoints.count(for: kind) {
+                for index in 0..<room.projectedPoints.count(for: kind.roomKind) {
                     points.append(byOrdinal[index + 1] ?? UtilizationPoint(id: UUID(), roomID: room.id, kind: kind, ordinal: index + 1))
                 }
             }
@@ -79,11 +78,6 @@ nonisolated enum CircuitEngine {
     static func validate(_ plan: CircuitPlan, grade: ElectrificationGrade) -> CircuitValidation {
         var issues: [CircuitIssue] = []
         for point in plan.points {
-            if point.kind == .fixedApplianceModule {
-                issues.append(.pointRulePending(point.id))
-                // No assignment is required until the compatibility rule is confirmed.
-                if point.circuitID == nil { continue }
-            }
             guard let id = point.circuitID else { issues.append(.pointUnassigned(point.id)); continue }
             guard let circuit = plan.circuits.first(where: { $0.id == id }) else {
                 issues.append(.missingCircuit(point: point.id)); continue
@@ -93,7 +87,7 @@ nonisolated enum CircuitEngine {
             }
         }
         for circuit in plan.circuits {
-            let count = plan.points.filter { $0.circuitID == circuit.id && $0.kind != .fixedApplianceModule }.count
+            let count = plan.points.filter { $0.circuitID == circuit.id }.count
             if case let .exceeded(maximum, actual) = CircuitPointLimitRule.evaluate(type: circuit.type, count: count) {
                 issues.append(.pointLimit(circuit: circuit.id, maximum: maximum, actual: actual))
             }

@@ -171,7 +171,8 @@ La aplicación determinará la cantidad y los tipos mínimos de circuitos requer
 
 El usuario podrá agregar circuitos adicionales.
 
-Cada punto de utilización deberá poder asociarse a un circuito.
+Cada boca distribuible deberá poder asociarse a un circuito. Los módulos de
+tomacorriente son equipamiento del ambiente, no bocas adicionales.
 
 El proyecto deberá permitir representar circuitos tales como:
 
@@ -497,24 +498,28 @@ SLA
 
 La implementación se realizará incrementalmente.
 
-La primera funcionalidad a implementar será:
+Estado implementado al cierre de Feature 004:
 
-Datos básicos del proyecto
-→ cálculo de SLA
-→ determinación del grado de electrificación preliminar.
+- Feature 001: datos básicos, SLA automática y GE según superficie.
+- Feature 002: ambientes, mínimos de bocas y módulos, y comparación con lo proyectado.
+- Feature 003: circuitos mínimos, variantes, ACU y distribución de bocas.
+- Feature 004: cargas, factor de potencia y DPMS trazable.
+- UX-001: flujo guiado de cuatro pasos validado manualmente en Simulator.
 
-Esta primera funcionalidad deberá tener pruebas unitarias antes de continuar con las siguientes etapas.
+Las secciones generales anteriores describen también el alcance futuro del producto.
+Suministro, conductores y demás funcionalidades posteriores siguen fuera de la
+implementación actual. Features 001–004 cuentan con pruebas unitarias.
 
 ## Feature 003 implementada
 
 Después de ambientes, el proyecto permite elegir explícitamente la variante de
 circuitos mínimos, completar los tipos faltantes, crear circuitos adicionales,
-seleccionar la posición libre de GE Superior y distribuir los puntos IUG/TUG.
-Los módulos fijos permanecen pendientes de regla. El resumen muestra identificación,
+seleccionar la posición libre de GE Superior y distribuir las bocas IUG/TUG.
+Los módulos de cocina se validan como equipamiento del ambiente, sin materializar bocas adicionales. El resumen muestra identificación,
 tipo, destino editable, bocas o una carga ACU y potencia declarada con su unidad.
-Las validaciones distinguen faltantes, exceso de bocas, puntos sin asignar,
+Las validaciones distinguen faltantes, exceso de bocas, bocas sin asignar,
 incompatibilidades y decisiones pendientes. La conformidad de composición mínima
-no representa conformidad integral. Los cálculos de cargas y DPMS se incorporan en Feature 004.
+no representa conformidad integral. Los cálculos de cargas y DPMS están implementados en Feature 004.
 
 ## Feature 004 — Cargas y DPMS
 
@@ -537,9 +542,112 @@ no representa conformidad integral. Los cálculos de cargas y DPMS se incorporan
   puntos IUG/TUG sin asignar, el total completo devuelve unassignedPoints y sólo
   puede mostrarse el subtotal resoluble como incompleto, sin asignar puntos
   automáticamente. Asignaciones incompatibles o a circuitos inexistentes producen
-  incompatibleAssignments. Los módulos fijos pendientes de regla no bloquean
-  por sí solos la DPMS ni se cuentan como bocas/cargas. La DPMS no declara
+  incompatibleAssignments. Los módulos de cocina no generan bocas distribuibles ni demanda independiente
+  y no bloquean por sí solos la DPMS. La DPMS no declara
   conformidad integral del proyecto.
 - No se calcula Ib, suministro, conductores, Iz, protecciones, caída de tensión,
   canalizaciones, agrupamiento, diagramas ni PDF; no se implementa Feature 005.
   El GE sigue siendo preliminar, sin reclasificación automática por DPMS.
+
+
+## UX-001 — Iteración 1: flujo guiado
+
+La creación y revisión se organiza en un NavigationStack nativo de cuatro pasos:
+
+1. **Proyecto**: nombre y superficies con etiquetas/unidades visibles. SLA y grado
+   de electrificación según superficie se calculan automáticamente con los motores
+   existentes, mostrando la semicubierta como división por dos. No hay botón
+   Calcular: Continuar se habilita con nombre y superficies válidos, sin confirmación
+   previa. Cambiar superficies actualiza SLA/GE; editar el nombre no los invalida.
+2. **Ambientes**: tarjetas con cantidades y estado Cumple/Incompleto, contador
+   persistente y alta mediante formulario con etiquetas y steppers. Los mínimos
+   y faltantes se actualizan mientras se carga el ambiente, utilizando las reglas
+   existentes. Al agregar, se limpia el formulario y aparece feedback durante
+   aproximadamente 1,5 segundos.
+3. **Circuitos**: elección explícita de variante, generación/completado de mínimos,
+   circuitos adicionales y tarjetas con bocas/máximo existente. La distribución
+   se agrupa por ambiente y muestra asignados/total, excluyendo del denominador
+   los módulos, que no constituyen bocas adicionales. Los selectores
+   sólo ofrecen circuitos compatibles según las reglas actuales.
+4. **Demanda**: detalle de cálculo por circuito, edición de cargas y fp, resumen
+   del GE, cargas específicas separadas y DPMS total. Los datos provienen de
+   DemandEngine; un subtotal resoluble se identifica siempre como incompleto.
+
+El indicador «Paso N de 4» y la barra de progreso acompañan cada pantalla.
+Un único ProjectForm vive en el estado de la raíz de navegación. Avanzar/volver
+sólo cambia la ruta, conservando proyecto, ambientes, puntos, circuitos,
+asignaciones, cargas, fp e identidades. Los formularios reutilizan las validaciones
+existentes; los datos de carga se guardan con «Aplicar datos de carga».
+La conservación es durante la sesión: no se incorpora persistencia en disco.
+
+Los módulos se presentan como «Módulos adicionales para electrodomésticos de
+ubicación fija». Se conservan en los mínimos del ambiente; no se convierten en
+bocas, TUE ni ACU. Los faltantes se
+presentan en naranja, cumplimiento en verde y errores reales en rojo, siempre
+con texto/símbolo. Las fuentes y aclaraciones permanecen disponibles mediante
+«Ver criterio normativo», sin ocupar el contenido principal.
+
+No se modifican fórmulas, valores, resultados del motor, referencias regulatorias
+ni el deployment target iOS 26. No se implementa Feature 005. Las verificaciones
+de presentación/estado son unitarias y no dependen del runner de UI.
+
+
+## UX-001 — Iteración 1.1: ajustes de uso
+
+- El nombre es texto libre (espacios, tildes, abreviaturas, números y puntuación).
+  Sólo se rechaza si queda vacío al quitar espacios y saltos de línea externos.
+  Cambiar esta etiqueta no invalida un cálculo de superficies válido.
+- El GE se presenta como «Grado de electrificación según superficie», determinado
+  por la SLA. La nota del dormitorio mayor a 36 m² se explica como criterio
+  particular del ambiente, sin alterar el GE global ni su regla existente.
+- Se usa «bocas (puntos de utilización)» en la introducción y luego «bocas» en
+  cantidades, faltantes y distribución. Los tipos del dominio no se renombran.
+- Elegir una variante no crea circuitos. «Crear circuitos mínimos» o «Completar
+  circuitos mínimos» ejecuta la acción existente, con confirmación durante
+  aproximadamente 1,5 segundos. Repetirla no duplica circuitos; se informa cuando
+  ya están completos. La posición libre pendiente no se declara resuelta.
+- Cada ambiente explica la asignación de bocas y distingue «Iluminación 1 · IUG»
+  de «Tomacorriente 1 · TUG». Sin circuitos compatibles se muestra una explicación;
+  con ellos aparece el selector, conservando «Sin asignar». Los módulos
+  no se materializan ni aparecen en la distribución.
+- «Editar circuito» permite modificar destino, potencia, unidad y fp del ACU
+  mediante el formulario existente, manteniendo identidad y relaciones. VA no
+  requiere fp; no se agregan valores por defecto para otras unidades.
+- Los criterios normativos se presentan con norma, edición y referencias
+  documentadas, aclaraciones humanas y Rule ID secundario, sin nombres de
+  archivos internos. Las referencias pendientes siguen explícitamente pendientes.
+- Los VA se presentan en formato argentino con hasta dos decimales y sin ceros
+  finales innecesarios. La explicación HP incluye unidades del multiplicador;
+  tanto el resultado como la traza siguen proviniendo del motor sin redondear el
+  dominio. No se modifica ninguna regla ni se incorpora Feature 005.
+
+
+### Corrección posterior a Iteración 1.1 — cálculo automático y teclado
+
+Paso 1 y destinos consultan el mismo ProjectForm mediante bindings al estado raíz.
+El resultado se deriva de los datos actuales, sin banderas de cálculo manual ni
+copias de superficies. Continuar valida ese resultado y sólo modifica la ruta;
+no recrea el formulario ni sus identidades. El fallback de datos inválidos queda
+como defensa y no como destino normal de un formulario incompleto.
+
+Los campos de superficies, dimensiones, potencia, factor de potencia y demanda
+conocida usan teclado decimal en iOS, con «Listo» para cerrarlo y descarte al
+arrastrar el formulario. Los parsers siguen aceptando coma o punto. Los contadores
+enteros mantienen sus steppers. La lógica de edición ACU permanece sin cambios.
+
+
+### Módulos de cocina y bocas distribuibles
+
+Una boca física y un módulo de tomacorriente son dimensiones diferentes.
+Los módulos adicionales para electrodomésticos de ubicación fija se materializan
+dentro de las bocas TUG existentes, pudiendo compartirlas con otros tomacorrientes.
+Por ejemplo, 3 bocas TUG + 2 módulos adicionales pueden materializarse como
+2 + 2 + 1 módulos/tomacorrientes: siguen siendo 3 bocas, con 5 módulos totales.
+El modelo actual conserva el requisito adicional por ambiente; no registra la
+cantidad de módulos dentro de cada boca individual. Se conserva `UtilizationPointKind.fixedApplianceModule`
+para la proyección y validación de mínimos del ambiente. `CircuitPointKind`
+representa exclusivamente las bocas IUG/TUG que se materializan como
+`UtilizationPoint`. Una cocina con 2 IUG, 3 TUG y 2 módulos genera cinco bocas
+para distribuir; los módulos no crean circuitos, cargas ni demanda independiente.
+No existe una decisión de compatibilidad TUG/TUE/ACU pendiente para esos módulos.
+Referencia: AEA 90364-7-770:2017, 770.7.5, Tabla 770.7.III.

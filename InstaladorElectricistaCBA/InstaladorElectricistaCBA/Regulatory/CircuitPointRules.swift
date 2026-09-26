@@ -13,12 +13,11 @@ nonisolated enum CircuitPointLimitRule {
 }
 nonisolated enum CircuitPointCompatibilityRule {
     static let ruleID = "RULE-CIRCUIT-POINT-COMPATIBILITY-001"
-    enum Status: Equatable { case compatible, incompatible, pendingRule }
-    static func evaluate(kind: UtilizationPointKind, type: CircuitType) -> Status {
+    enum Status: Equatable { case compatible, incompatible }
+    static func evaluate(kind: CircuitPointKind, type: CircuitType) -> Status {
         switch kind {
         case .generalLighting: type == .iug ? .compatible : .incompatible
         case .generalUseOutlet: type == .tug ? .compatible : .incompatible
-        case .fixedApplianceModule: .pendingRule
         }
     }
 }

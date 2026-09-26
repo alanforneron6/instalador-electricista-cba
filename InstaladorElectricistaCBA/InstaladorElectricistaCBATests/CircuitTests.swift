@@ -68,11 +68,11 @@ struct CircuitPointTests {
         #expect(CircuitPointLimitRule.evaluate(type: .acu, count: 16) == .notApplicable)
     }
     @Test(arguments: [
-        (UtilizationPointKind.generalLighting, CircuitType.iug, true), (.generalLighting, .tug, false),
+        (CircuitPointKind.generalLighting, CircuitType.iug, true), (.generalLighting, .tug, false),
         (.generalUseOutlet, .tug, true), (.generalUseOutlet, .iug, false),
         (.generalUseOutlet, .tue, false), (.generalUseOutlet, .acu, false)
     ])
-    func assignments(kind: UtilizationPointKind, type: CircuitType, compatible: Bool) throws {
+    func assignments(kind: CircuitPointKind, type: CircuitType, compatible: Bool) throws {
         var plan = CircuitPlan()
         let point = UtilizationPoint(id: UUID(), roomID: UUID(), kind: kind, ordinal: 1)
         plan.points = [point]
@@ -89,22 +89,9 @@ struct CircuitPointTests {
             #expect(CircuitEngine.validate(plan, grade: .minimum).issues.contains(.incompatibleAssignment(point: point.id, circuit: id)))
         }
     }
-    @Test(arguments: CircuitType.allCases)
-    func fixedModulesPending(type: CircuitType) throws {
-        #expect(CircuitPointCompatibilityRule.evaluate(kind: .fixedApplianceModule, type: type) == .pendingRule)
-        let point = UtilizationPoint(id: UUID(), roomID: UUID(), kind: .fixedApplianceModule, ordinal: 1)
-        var plan = CircuitPlan(points: [point])
-        let circuitID = try CircuitEngine.addCircuit(to: &plan, type: type)
-        #expect(throws: CircuitEngine.OperationError.self) {
-            try CircuitEngine.assign(pointID: point.id, to: circuitID, in: &plan)
-        }
-        #expect(plan.points[0].circuitID == nil)
-    }
-    @Test func unassignedFixedModuleOnlyReportsPendingRule() {
-        let point = UtilizationPoint(id: UUID(), roomID: UUID(), kind: .fixedApplianceModule, ordinal: 1)
-        let validation = CircuitEngine.validate(CircuitPlan(points: [point]), grade: .minimum)
-        #expect(validation.issues == [.pointRulePending(point.id)])
-        #expect(!validation.issues.contains(.pointUnassigned(point.id)))
+    @Test func moduleKindCannotBeMaterializedAsCircuitPoint() {
+        #expect(CircuitPointKind.allCases.map(\.roomKind) == [.generalLighting, .generalUseOutlet])
+        #expect(!CircuitPointKind.allCases.map(\.roomKind).contains(.fixedApplianceModule))
     }
     @Test func synchronizationPreservesIdentityAndAssignments() throws {
         var counts = UtilizationPoints()
@@ -129,7 +116,7 @@ struct CircuitPointTests {
         try CircuitEngine.synchronize(&plan, rooms: [])
         #expect(plan.points.isEmpty)
     }
-    @Test func structuredLimitAndPendingModule() throws {
+    @Test func structuredLimitExcludesModules() throws {
         var counts = UtilizationPoints()
         try counts.setCount(16, for: .generalLighting)
         try counts.setCount(1, for: .fixedApplianceModule)
@@ -139,7 +126,8 @@ struct CircuitPointTests {
         for point in plan.points where point.kind == .generalLighting { try CircuitEngine.assign(pointID: point.id, to: id, in: &plan) }
         let issues = CircuitEngine.validate(plan, grade: .minimum).issues
         #expect(issues.contains(.pointLimit(circuit: id, maximum: 15, actual: 16)))
-        #expect(issues.contains(.pointRulePending(plan.points.last!.id)))
+        #expect(plan.points.count == 16)
+        #expect(issues == [.pointLimit(circuit: id, maximum: 15, actual: 16)])
     }
     @Test func resourceGuardDoesNotDestroyExistingPoints() throws {
         var counts = UtilizationPoints()
@@ -217,5 +205,76 @@ struct CircuitIntegrityTests {
         let result = CircuitEngine.validate(CircuitPlan(circuits: [circuit]), grade: .minimum)
         #expect(result.issues.contains(.acuLoadMissing(circuit.id)))
         #expect(result.issues.contains(.acuDestinationMissing(circuit.id)))
+    }
+}
+
+@Suite("RULE-ROOM-POINTS-001 — módulos de cocina separados de bocas")
+@MainActor struct KitchenModuleIntegrationTests {
+    private func kitchen(modules: Int, tug: Int = 3) throws -> Room {
+        var counts = UtilizationPoints()
+        try counts.setCount(2, for: .generalLighting)
+        try counts.setCount(tug, for: .generalUseOutlet)
+        try counts.setCount(modules, for: .fixedApplianceModule)
+        return Room(name: "Cocina", type: .kitchen, projectedPoints: counts)
+    }
+
+    @Test func mediumKitchenKeepsModuleRequirementAndMaterializesOnlyFiveBocas() throws {
+        let room = try kitchen(modules: 2)
+        let evaluation = try RoomMinimumPointsRule.evaluate(room, grade: .medium)
+        let comparisons = PointComparison.compare(room.projectedPoints, with: evaluation.requirements)
+        #expect(comparisons.allSatisfy { $0.status == .conforming })
+        #expect(comparisons.first { $0.kind == .fixedApplianceModule }?.required == 2)
+        #expect(UtilizationPointKind.fixedApplianceModule.quantityText(2) == "2 módulos")
+        var plan = CircuitPlan(selection: .init(grade: .medium, variant: .b))
+        try CircuitEngine.synchronize(&plan, rooms: [room])
+        #expect(plan.points.map(\.kind) == [.generalLighting, .generalLighting, .generalUseOutlet, .generalUseOutlet, .generalUseOutlet])
+        #expect(plan.points.map(\.ordinal) == [1, 2, 1, 2, 3])
+        #expect(plan.circuits.isEmpty)
+        let unassigned = CircuitEngine.validate(plan, grade: .medium).issues
+        #expect(unassigned == plan.points.map { .pointUnassigned($0.id) })
+        try CircuitEngine.generateMissing(in: &plan, grade: .medium)
+        for point in plan.points {
+            let target = try #require(point.compatibleCircuits(in: plan).first)
+            try CircuitEngine.assign(pointID: point.id, to: target.id, in: &plan)
+        }
+        let validation = CircuitEngine.validate(plan, grade: .medium)
+        #expect(validation.minimum == .conforming)
+        #expect(validation.issues.isEmpty)
+        let progress = AssignmentProgress(plan: plan, validation: validation)
+        #expect(progress.total == 5); #expect(progress.assigned == 5); #expect(progress.unassigned == 0)
+        let result = DemandEngine.project(plan: plan, grade: .medium)
+        #expect(result.circuits.compactMap(\.pointCount).reduce(0, +) == 5)
+        #expect(try result.generalBase.get().voltAmperes == 4480)
+        #expect(try result.total.get().voltAmperes == 3584)
+        #expect(result.specificLoads.isEmpty)
+
+        let points = plan.points
+        let circuits = plan.circuits
+        var fewerModules = room.projectedPoints
+        try fewerModules.setCount(1, for: .fixedApplianceModule)
+        let missing = Room(id: room.id, name: room.name, type: room.type, projectedPoints: fewerModules)
+        #expect(RoomPresentation(room: missing, grade: .medium).completion == .incomplete(bocas: 0, modules: 1))
+        let missingEvaluation = try RoomMinimumPointsRule.evaluate(missing, grade: .medium)
+        #expect(PointComparison.compare(missing.projectedPoints, with: missingEvaluation.requirements)
+            .first { $0.kind == .fixedApplianceModule }?.status == .missing(1))
+        try CircuitEngine.synchronize(&plan, rooms: [missing])
+        #expect(plan.points == points)
+        #expect(plan.circuits == circuits)
+        #expect(DemandEngine.project(plan: plan, grade: .medium).total == result.total)
+    }
+
+    @Test func modulesDoNotConsumeMaterializationCapacityOrCircuitBocaLimit() throws {
+        let room = try kitchen(modules: Int.max, tug: 15)
+        var plan = CircuitPlan()
+        try CircuitEngine.synchronize(&plan, rooms: [room])
+        #expect(plan.points.count == 17)
+        let iug = try CircuitEngine.addCircuit(to: &plan, type: .iug)
+        let tug = try CircuitEngine.addCircuit(to: &plan, type: .tug)
+        for point in plan.points {
+            try CircuitEngine.assign(pointID: point.id, to: point.kind == .generalLighting ? iug : tug, in: &plan)
+        }
+        #expect(CircuitEngine.validate(plan, grade: .minimum).issues.isEmpty)
+        let tugCircuit = try #require(plan.circuits.first { $0.id == tug })
+        #expect(DemandEngine.circuit(tugCircuit, points: plan.points).pointCount == 15)
     }
 }
