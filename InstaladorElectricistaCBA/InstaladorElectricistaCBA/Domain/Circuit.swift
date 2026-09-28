@@ -1,5 +1,7 @@
 import Foundation
 
+nonisolated enum SupplyNature: CaseIterable { case monophase, threePhase }
+
 nonisolated enum CircuitCategory { case generalUse, specialUse, specificUse }
 nonisolated enum CircuitType: String, CaseIterable, Hashable {
     case iug, tug, tue, acu
@@ -35,21 +37,30 @@ nonisolated struct Circuit: Identifiable, Equatable {
     private(set) var declaredLoad: DeclaredLoad?
     private(set) var powerFactor: PowerFactor?
     private(set) var knownDemand: ApparentPower?
-    enum ValidationError: Error { case invalidNumber, loadOnNonACU, knownDemandOnACU }
+    private(set) var supplyNature: SupplyNature?
+    enum ValidationError: Error { case invalidNumber, loadOnNonACU, knownDemandOnACU, supplyNatureOnNonACU }
     init(id: UUID = UUID(), number: Int, type: CircuitType, destination: String = "",
-         declaredLoad: DeclaredLoad? = nil, powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil) throws {
+         declaredLoad: DeclaredLoad? = nil, powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil, supplyNature: SupplyNature? = nil) throws {
         guard number > 0 else { throw ValidationError.invalidNumber }
         guard type == .acu || (declaredLoad == nil && powerFactor == nil) else { throw ValidationError.loadOnNonACU }
         guard type != .acu || knownDemand == nil else { throw ValidationError.knownDemandOnACU }
+        guard type == .acu || supplyNature == nil else { throw ValidationError.supplyNatureOnNonACU }
         self.id = id; self.number = number; self.type = type
         self.destination = destination; self.declaredLoad = declaredLoad
         self.powerFactor = powerFactor; self.knownDemand = knownDemand
+        // Compatibilidad con ACU existentes; no describe el suministro de la vivienda.
+        self.supplyNature = type == .acu ? (supplyNature ?? .monophase) : nil
+    }
+
+    mutating func updateSupplyNature(_ nature: SupplyNature) throws {
+        guard type == .acu else { throw ValidationError.supplyNatureOnNonACU }
+        supplyNature = nature
     }
 
     // La edición reutiliza las validaciones y conserva la identidad y las asignaciones.
     mutating func updateDemand(declaredLoad: DeclaredLoad?, powerFactor: PowerFactor?, knownDemand: ApparentPower?) throws {
         self = try Circuit(id: id, number: number, type: type, destination: destination,
-                           declaredLoad: declaredLoad, powerFactor: powerFactor, knownDemand: knownDemand)
+                           declaredLoad: declaredLoad, powerFactor: powerFactor, knownDemand: knownDemand, supplyNature: supplyNature)
     }
 }
 

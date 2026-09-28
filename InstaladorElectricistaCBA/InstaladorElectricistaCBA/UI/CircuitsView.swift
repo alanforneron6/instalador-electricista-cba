@@ -201,15 +201,36 @@ struct CircuitsView: View {
                                          : "Creá un circuito compatible para asignar esta boca.")
                                         .font(.footnote).foregroundStyle(.secondary)
                                 } else {
-                                    Picker("Circuito", selection: Binding<UUID?>(get: { point.circuitID }, set: { id in
-                                        perform { try CircuitEngine.assign(pointID: point.id, to: id, in: &plan) }
-                                    })) {
-                                        Text("Sin asignar").tag(nil as UUID?)
-                                        ForEach(compatible) { circuit in
-                                            Text("C\(circuit.number) · \(circuit.type.rawValue.uppercased())").tag(Optional(circuit.id))
+                                    // Acciones locales, sin selección automática del Form ni cambio de fila.
+                                    Menu {
+                                        Button {
+                                            perform { try CircuitEngine.assign(pointID: point.id, to: nil, in: &plan) }
+                                        } label: {
+                                            if point.circuitID == nil { Label("Sin asignar", systemImage: "checkmark") }
+                                            else { Text("Sin asignar") }
                                         }
+                                        ForEach(compatible) { circuit in
+                                            Button {
+                                                perform { try CircuitEngine.assign(pointID: point.id, to: circuit.id, in: &plan) }
+                                            } label: {
+                                                if point.circuitID == circuit.id {
+                                                    Label("C\(circuit.number) · \(circuit.type.rawValue.uppercased())", systemImage: "checkmark")
+                                                } else {
+                                                    Text("C\(circuit.number) · \(circuit.type.rawValue.uppercased())")
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            if let selected = compatible.first(where: { $0.id == point.circuitID }) {
+                                                Text("C\(selected.number) · \(selected.type.rawValue.uppercased())")
+                                            } else { Text("Sin asignar") }
+                                            Image(systemName: "chevron.up.chevron.down")
+                                        }
+                                        .frame(minHeight: 44)
+                                        .contentShape(Rectangle())
                                     }
-                                    .labelsHidden()
+                                    .buttonStyle(.borderless)
                                     .accessibilityLabel("\(room.name), \(point.assignmentTitle), circuito")
                                 }
                             }

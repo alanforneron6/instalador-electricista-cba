@@ -1,6 +1,8 @@
 import Foundation
 
 struct CircuitDemandForm {
+    let supportsSupplyNature: Bool
+    var supplyNature: SupplyNature
     var destination: String
     var declaredValue = ""
     var unit: PowerUnit = .voltAmpere
@@ -8,6 +10,8 @@ struct CircuitDemandForm {
     var knownDemandVA = ""
 
     init(circuit: Circuit) {
+        supportsSupplyNature = circuit.type == .acu
+        supplyNature = circuit.supplyNature ?? .monophase
         destination = circuit.destination
         if let load = circuit.declaredLoad {
             declaredValue = String(load.value)
@@ -33,14 +37,22 @@ struct CircuitDemandForm {
         let known: ApparentPower?
         if circuit.type == .acu {
             load = try Self.optionalNumber(declaredValue).map { try DeclaredLoad(value: $0, unit: unit) }
-            factor = unit == .voltAmpere ? nil : try Self.parsePowerFactor(powerFactor)
+            // Editar una carga ya declarada en VA conserva su fp; cambiar a VA mantiene la limpieza previa.
+            if unit == .voltAmpere {
+                factor = circuit.declaredLoad?.unit == .voltAmpere ? circuit.powerFactor : nil
+            } else {
+                factor = try Self.parsePowerFactor(powerFactor)
+            }
             known = nil
         } else {
             load = nil; factor = nil
             known = try Self.optionalNumber(knownDemandVA).map { try ApparentPower(voltAmperes: $0) }
         }
         try circuit.updateDemand(declaredLoad: load, powerFactor: factor, knownDemand: known)
-        if circuit.type == .acu { circuit.destination = destination }
+        if circuit.type == .acu {
+            try circuit.updateSupplyNature(supplyNature)
+            circuit.destination = destination
+        }
     }
 
     static func parsePowerFactor(_ text: String) throws -> PowerFactor? {

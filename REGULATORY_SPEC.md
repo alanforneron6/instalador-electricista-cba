@@ -520,7 +520,7 @@ Edición:
 2017
 
 Referencia:
-770.8.3.3.
+770.8.3.4.
 
 Regla:
 Se recomienda que el máximo desequilibrio entre las corrientes de las distintas fases no supere el 30%.
@@ -585,7 +585,7 @@ Edición:
 2017
 
 Referencia:
-770.8.3.2.
+770.8.3.3.
 
 Regla:
 La empresa distribuidora puede definir el valor de potencia a partir del cual un suministro debe ser trifásico.
@@ -814,7 +814,9 @@ Alcance provisional:
 El proyecto está diseñado para instalaciones en baja tensión dentro del alcance profesional de Categoría III y con límite objetivo de 10 kW.
 
 Pendiente:
-Registrar dentro del documento la resolución oficial de ERSeP y la referencia exacta correspondiente. Hasta entonces, no convertir el valor de 10 kW en una validación bloqueante.
+Registrar la resolución oficial de ERSeP y la referencia exacta correspondiente.
+Feature 005 implementa el límite de potencia de 10 kW por decisión explícita del
+titular, sin declarar verificada esa referencia ni bloquear el análisis eléctrico.
 
 Notas:
 - Esta regla complementa RULE-ERSEP-SCOPE-001 y mantiene pendiente la misma fuente oficial.
@@ -834,7 +836,9 @@ PENDING_SOURCE
 Pendiente:
 Registrar la resolución vigente de ERSeP, su edición y el alcance exacto de las instalaciones que puede proyectar, ejecutar y certificar un Instalador Electricista Habilitado Categoría III.
 
-El límite de 10 kW utilizado como alcance del proyecto deberá quedar vinculado a su fuente oficial antes de convertirse en una validación bloqueante.
+La referencia oficial del límite de 10 kW sigue pendiente. Feature 005 evalúa
+únicamente el alcance de potencia, por decisión explícita del titular; no certifica
+las demás incumbencias de Cat. III ni declara inválida una instalación que lo supere.
 
 ---
 
@@ -1084,7 +1088,7 @@ permanece sin cambios: 15 para IUG/TUG/TUE, sin aplicar ese límite a ACU.
 Resolver con la futura feature de canalizaciones/agrupamiento, con fuente y
 condiciones de aplicación confirmadas.
 
-## Límites de implementación
+## Límites de implementación de Feature 004
 
 La revisión de mínimos, asignaciones y reglas pendientes de Feature 003 sigue
 independiente del resultado aritmético. Calcular DPMS no certifica conformidad.
@@ -1092,4 +1096,72 @@ Los módulos de cocina son equipamiento del ambiente: no se suman como bocas
 ni se convierten artificialmente en cargas ACU. Sin sincronización de puntos,
 la UI no presenta resultados calculados sobre el estado anterior.
 No se calcula Ib ni suministro, conductores, Iz, protecciones, caída de tensión,
-Ku/Ks editables, canalizaciones o agrupamiento. No se implementa Feature 005.
+Ku/Ks editables, canalizaciones o agrupamiento. Feature 005 se documenta a continuación como etapa separada.
+
+
+# FEATURE 005 — Etapa 1: criterios adoptados y trazabilidad
+
+Prioridad: AEA 90364-7-770:2017; ERSeP/marco Córdoba; Guía AEA 770 como material
+auxiliar/metodológico; condiciones particulares futuras de cada distribuidora.
+Esta etapa no verifica las referencias pendientes ni incorpora reglas EPEC/cooperativas.
+
+## RULE-PROJECT-POWER-FACTOR-001
+
+Criterio aproximado adoptado explícitamente por el titular: fpProyecto = 0,85,
+fijo en esta versión, para P estimada [W] = DPMS completa [VA] × fpProyecto.
+Origen indicado: Guía AEA 770. Edición y referencia puntual: PENDING_SOURCE,
+pendientes de cotejo. No se atribuye una sección de AEA 90364 que no fue confirmada.
+Se conserva el fp individual de cada carga al obtener su S; no se vuelve a aplicar
+para corriente desde VA ni se sustituye por el factor global.
+
+## RULE-CATEGORY-III-SCOPE-001 — aplicación de potencia en Feature 005
+
+Valor confirmado por el titular para esta etapa: máximo 10.000 W de potencia
+simultánea máxima. P estimada <= 10.000 W dentro del alcance de POTENCIA Cat. III;
+P estimada > 10.000 W fuera. Fuente indicada: ERSeP, marco de Seguridad Eléctrica
+de Córdoba; resolución, edición y artículo exactos continúan PENDING_SOURCE.
+No se amplía esta evaluación a otras incumbencias ni se clasifica el exceso como
+invalidez eléctrica. Esta decisión de implementación reemplaza el aplazamiento
+anterior del uso del umbral, no el pendiente documental de la fuente.
+
+## PROFILE-CORDOBA-SUPPLY-001
+
+Perfil del proyecto confirmado por el titular: fase-neutro 220 V, fase-fase 380 V,
+frecuencia 50 Hz. Referencia primaria, edición y sección: PENDING_SOURCE.
+Sin reglas particulares de prestador y sin asumir que EPEC 5 kW sea general.
+
+## RULE-SUPPLY-001 — recomendaciones implementadas
+
+Fuente ya registrada: AEA 90364-7-770:2017, 770.8.3.3.
+DPMS > 7.000 VA y S/220 > 32 A generan motivos independientes de recomendación
+trifásica, con comparaciones estrictas. La igualdad no dispara cada motivo.
+La hipótesis monofásica se conserva aun con receptores trifásicos para explicar
+las recomendaciones; no constituye una autorización de conexión monofásica.
+Las condiciones particulares de distribuidora permanecen pendientes.
+
+## RULE-THREE-PHASE-LOAD-001
+
+Necesidad técnica: un receptor declarado trifásico requiere alimentación trifásica.
+Criterio explícito de Feature 005; no se inventa referencia normativa puntual.
+El resultado «requerido» conserva los circuitID de los ACU que lo originan y tiene
+prioridad sobre «recomendado», sin borrar recomendaciones concurrentes.
+Monofásico por defecto de un ACU es una decisión de compatibilidad del modelo,
+no una inferencia sobre un equipo real ni un cambio de su potencia declarada.
+
+## CALC-SUPPLY-CURRENT-001 / RULE-CURRENT-001 — alcance parcial implementado
+
+Cálculo electrotécnico desde potencia aparente: monofásico I = S/V fase-neutro;
+receptor trifásico individual equilibrado I = S/(√3 × V fase-fase).
+Origen de implementación: contrato de Feature 005, sin nueva cita normativa.
+No aplicar fp otra vez ni usar P estimada en lugar de S.
+
+Para proyecto clasificado trifásico, Ib seccional queda pendiente de distribución
+de fases, incluso si todos sus circuitos actuales fueran monofásicos.
+Se mantiene RULE-THREE-PHASE-CURRENT-001: AEA 90364-7-770:2017, 770.8.3.1, Nota 1.
+Feature 006 resolverá corrientes por fase y fase más cargada; no se implementa aquí.
+Los demás supuestos de RULE-CURRENT-001 y pendientes regulatorios siguen abiertos.
+
+La DPMS incompleta propaga el error de Feature 004 sin resultados definitivos de
+P, alcance Cat. III, suministro ni Ib. No se reutilizan subtotales como totales.
+La evaluación no sustituye la revisión independiente de mínimos y límites de
+circuitos de Feature 003. No se redondean valores internos.

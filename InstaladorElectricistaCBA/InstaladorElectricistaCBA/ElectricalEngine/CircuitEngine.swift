@@ -42,12 +42,13 @@ nonisolated enum CircuitEngine {
 
     @discardableResult static func addCircuit(to plan: inout CircuitPlan, type: CircuitType,
                                               destination: String = "", load: DeclaredLoad? = nil,
-                                              powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil) throws -> UUID {
+                                              powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil,
+                                              supplyNature: SupplyNature? = nil) throws -> UUID {
         let lastNumber = plan.circuits.map(\.number).max() ?? 0
         guard lastNumber < Int.max else { throw OperationError.circuitNumberOverflow }
         let circuit = try Circuit(number: lastNumber + 1,
                                   type: type, destination: destination, declaredLoad: load,
-                                  powerFactor: powerFactor, knownDemand: knownDemand)
+                                  powerFactor: powerFactor, knownDemand: knownDemand, supplyNature: supplyNature)
         plan.circuits.append(circuit)
         return circuit.id
     }

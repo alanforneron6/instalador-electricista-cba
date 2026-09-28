@@ -93,7 +93,10 @@ import Testing
         flow.advance(); flow.advance()
         #expect(flow.step == .demand)
         flow.advance()
-        #expect(flow.path.count == 3)
+        #expect(flow.step == .supply)
+        #expect(flow.path.count == 4)
+        flow.goBack()
+        #expect(flow.step == .demand)
         flow.goBack(); flow.goBack(); flow.goBack()
         #expect(flow.step == .project)
         let after = try #require(flow.result?.project)
@@ -104,6 +107,36 @@ import Testing
         #expect(after.circuitPlan.selection == original.circuitPlan.selection)
         #expect(after.circuitPlan.freeChoiceCircuitID == original.circuitPlan.freeChoiceCircuitID)
         #expect(after.circuitPlan.circuits.first { $0.id == acuID }?.powerFactor == (try PowerFactor(0.8)))
+    }
+
+    @Test(arguments: [CircuitPointKind.generalLighting, .generalUseOutlet])
+    func assigningAndClearingKeepsCircuitStepAndPointIdentities(kind: CircuitPointKind) throws {
+        var flow = validFlow()
+        flow.path = [.rooms, .circuits]
+        var counts = UtilizationPoints()
+        try counts.setCount(2, for: kind.roomKind)
+        flow.form.rooms = [Room(name: "Cocina", type: .kitchen, projectedPoints: counts)]
+        let type: CircuitType = kind == .generalLighting ? .iug : .tug
+        let first = try CircuitEngine.addCircuit(to: &flow.form.circuitPlan, type: type)
+        let second = try CircuitEngine.addCircuit(to: &flow.form.circuitPlan, type: type)
+        let original = try #require(flow.result?.project)
+        let pointID = try #require(flow.form.circuitPlan.points.first?.id)
+        for target in [Optional(first), Optional(second), nil] {
+            try CircuitEngine.assign(pointID: pointID, to: target, in: &flow.form.circuitPlan)
+            #expect(flow.path == [.rooms, .circuits])
+            #expect(flow.result?.project.id == original.id)
+            #expect(flow.form.rooms.map(\.id) == original.rooms.map(\.id))
+            #expect(flow.form.circuitPlan.circuits == original.circuitPlan.circuits)
+            #expect(flow.form.circuitPlan.points.map(\.id) == original.circuitPlan.points.map(\.id))
+            #expect(flow.form.circuitPlan.points.first?.circuitID == target)
+            #expect(flow.form.circuitPlan.points[1] == original.circuitPlan.points[1])
+            let progress = AssignmentProgress(plan: flow.form.circuitPlan,
+                                              validation: CircuitEngine.validate(flow.form.circuitPlan, grade: .medium))
+            #expect(progress.assigned == (target == nil ? 0 : 1))
+            #expect(progress.total == 2)
+        }
+        flow.advance()
+        #expect(flow.step == .demand)
     }
 
     @Test func addingAnotherRoomKeepsExistingPointIdentitiesAndAssignments() throws {

@@ -30,6 +30,12 @@ private struct ProjectDestinationView: View {
                 case .circuits:
                     CircuitsView(plan: $flow.form.circuitPlan, rooms: flow.form.rooms, grade: result.grade,
                                  synchronizationFailed: flow.form.pointSynchronizationFailed)
+                case .supply:
+                    if let assessment = flow.supplyAssessment {
+                        SupplyStepView(assessment: assessment, circuits: flow.form.circuitPlan.circuits)
+                    } else {
+                        Section { StatusMessage(text: "Alimentación pendiente: volvé a Demanda y completá los datos.", tone: .pending) }
+                    }
                 case .demand:
                     DemandStepView(plan: $flow.form.circuitPlan, grade: result.grade,
                                    synchronizationFailed: flow.form.pointSynchronizationFailed)
@@ -39,6 +45,11 @@ private struct ProjectDestinationView: View {
                         Button("Continuar a circuitos") { flow.advance() }.buttonStyle(.borderedProminent)
                     } else if step == .circuits {
                         Button("Continuar a demanda") { flow.advance() }.buttonStyle(.borderedProminent)
+                    }
+                    if step == .demand {
+                        Button("Continuar a alimentación") { flow.advance() }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(!flow.canContinueToSupply)
                     }
                     Button("Volver a \(ProjectStep(rawValue: step.rawValue - 1)?.name ?? "Proyecto")") { flow.goBack() }
                 }

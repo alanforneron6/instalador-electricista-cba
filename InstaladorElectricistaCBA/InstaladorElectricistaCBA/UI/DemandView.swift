@@ -42,7 +42,7 @@ struct DemandStepView: View {
                     Text("Referencia interna: \(result.totalRuleID)").foregroundStyle(.secondary)
                     Text("DPMS total = DPMS del GE + demandas consideradas de cargas específicas.")
                     Text("Completa se refiere a los datos de este cálculo, no a la conformidad integral de la instalación. Revisá también los pendientes de ambientes y circuitos.")
-                    Text("Ku/Ks específicos quedan pendientes; no se verifica todavía el grado definitivo ni el suministro.")
+                    Text("Ku/Ks específicos quedan pendientes; no se verifica todavía el grado definitivo. La alimentación se revisa en el siguiente paso.")
                 }
             }
         }
@@ -95,11 +95,22 @@ struct CircuitDemandEditor: View {
         .onChange(of: form.declaredValue) { saved = false }
         .onChange(of: form.unit) { saved = false }
         .onChange(of: form.powerFactor) { saved = false }
+        .onChange(of: form.supplyNature) { saved = false }
         .onChange(of: form.knownDemandVA) { saved = false }
     }
 
     @ViewBuilder private var fields: some View {
         if circuit.type == .acu {
+            if form.supportsSupplyNature {
+                VStack(alignment: .leading) {
+                    Text("Alimentación del equipo").font(.subheadline)
+                    Picker("Alimentación del equipo", selection: $form.supplyNature) {
+                        Text("Monofásica").tag(SupplyNature.monophase)
+                        Text("Trifásica").tag(SupplyNature.threePhase)
+                    }.pickerStyle(.segmented)
+                    Text("Indicá cómo se alimenta este equipo.").font(.footnote).foregroundStyle(.secondary)
+                }
+            }
             LabeledInput(title: "Destino / nombre de la carga", text: $form.destination)
             LabeledInput(title: "Potencia declarada", text: $form.declaredValue, unit: form.unit.rawValue, prompt: "Vacío = pendiente", decimalInput: true)
             Picker("Unidad declarada", selection: $form.unit) {

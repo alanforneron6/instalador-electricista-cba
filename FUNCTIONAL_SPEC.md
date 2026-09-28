@@ -507,7 +507,8 @@ Estado implementado al cierre de Feature 004:
 - UX-001: flujo guiado de cuatro pasos validado manualmente en Simulator.
 
 Las secciones generales anteriores describen también el alcance futuro del producto.
-Suministro, conductores y demás funcionalidades posteriores siguen fuera de la
+Feature 005 Etapa 1 agrega el contrato y cálculo técnico de potencia/suministro
+sin UI final. Conductores y demás funcionalidades posteriores siguen fuera de la
 implementación actual. Features 001–004 cuentan con pruebas unitarias.
 
 ## Feature 003 implementada
@@ -545,8 +546,8 @@ no representa conformidad integral. Los cálculos de cargas y DPMS están implem
   incompatibleAssignments. Los módulos de cocina no generan bocas distribuibles ni demanda independiente
   y no bloquean por sí solos la DPMS. La DPMS no declara
   conformidad integral del proyecto.
-- No se calcula Ib, suministro, conductores, Iz, protecciones, caída de tensión,
-  canalizaciones, agrupamiento, diagramas ni PDF; no se implementa Feature 005.
+- Feature 004 no calcula Ib, suministro, conductores, Iz, protecciones, caída de tensión,
+  canalizaciones, agrupamiento, diagramas ni PDF; Feature 005 se describe por separado.
   El GE sigue siendo preliminar, sin reclasificación automática por DPMS.
 
 
@@ -651,3 +652,68 @@ representa exclusivamente las bocas IUG/TUG que se materializan como
 para distribuir; los módulos no crean circuitos, cargas ni demanda independiente.
 No existe una decisión de compatibilidad TUG/TUE/ACU pendiente para esos módulos.
 Referencia: AEA 90364-7-770:2017, 770.7.5, Tabla 770.7.III.
+
+
+## Feature 005 — Etapa 1: potencia de proyecto y sistema de alimentación
+
+Contrato de dominio y cálculo, sin UI final. La entrada es el plan sincronizado y
+su GE; el motor obtiene una única evaluación de DemandEngine para ese mismo plan.
+Sólo su total completo habilita los resultados. Una falla de Feature 004 se propaga
+como incompletitud tipada, sin sustituir el total por el subtotal resoluble.
+La traza de demanda original acompaña el resultado de esta etapa.
+
+- Potencia activa estimada: P = DPMS total [VA] × fpProyecto, con fpProyecto = 0,85
+  fijo y no editable. Es un criterio aproximado adoptado de la Guía AEA 770;
+  su edición y referencia puntual siguen pendientes de cotejo. No sustituye el fp
+  individual ni vuelve a convertir las cargas. Se conserva precisión interna en W;
+  kW es sólo otra unidad, sin redondeo prematuro.
+- «Alcance de potencia Cat. III»: P <= 10.000 W dentro; P > 10.000 W fuera.
+  No equivale a «Apto para Cat. III» ni declara inválida la instalación. El valor
+  se implementa por decisión explícita del titular; la resolución/referencia ERSeP
+  exacta sigue pendiente de cotejo. No se bloquea el resto del análisis técnico.
+- Cada ACU admite naturaleza monofásica/trifásica del receptor, no de la vivienda.
+  Para compatibilidad, ACU sin naturaleza explícita se inicializa monofásico.
+  La app no persiste proyectos en disco: no existe migración de archivos.
+  Editar carga/fp conserva Circuit.id y naturaleza; cambiar naturaleza conserva
+  carga, fp e identidad. Otros tipos de circuito no admiten esta propiedad ACU.
+- Evaluación técnica: monofásica, trifásica recomendada o trifásica requerida.
+  DPMS > 7.000 VA y corriente hipotética monofásica > 32 A son recomendaciones
+  AEA independientes, no obligaciones universales. Un receptor trifásico requiere
+  alimentación trifásica. Se conservan todos los motivos, incluidos sus circuitID.
+- Perfil actual: 220 V fase-neutro, 380 V fase-fase, 50 Hz. Valores centralizados;
+  fuente puntual pendiente de cotejo. No son un perfil particular EPEC/cooperativa.
+- Hipótesis monofásica: I = S / 220, sin otro fp. Se calcula incluso al haber una
+  carga trifásica, exclusivamente para conservar las recomendaciones; no indica
+  que ese receptor pueda funcionar en monofásica.
+- Ib seccional: definitiva sólo para resultado monofásico con demanda completa.
+  Tanto trifásica recomendada como requerida quedan pendientes de distribución
+  de fases. Feature 006 calculará IL1/IL2/IL3 y la fase más cargada.
+- Se ofrece cálculo puro para un receptor trifásico equilibrado: I = S/(√3 × 380).
+  Ese resultado nunca se utiliza como Ib seccional de todo el proyecto.
+
+Se mantiene la separación AEA → ERSeP → Guía AEA auxiliar → condiciones futuras de
+la distribuidora. EPEC 5 kW no se implementa como regla general; cooperativas y
+condiciones particulares siguen pendientes. No se aplican de nuevo simultaneidad,
+fp individual ni sumas de ACU; los módulos de cocina no generan demanda.
+No se implementa Feature 006, conductores, protecciones, caída de tensión ni tablero.
+
+## Feature 005 — Etapa 2: Alimentación en el asistente
+
+El flujo vigente tiene cinco pasos: Proyecto → Ambientes → Circuitos → Demanda
+→ Alimentación. El último paso sólo se habilita con una evaluación completa de
+ProjectSupplyEngine, puntos sincronizados y circuitos presentes. Retroceder
+conserva el mismo formulario, circuitos, cargas e identidades.
+
+El editor ACU permite indicar la alimentación del equipo (monofásica/trifásica),
+sin confundirla con la alimentación de la vivienda. Los demás tipos no ofrecen
+este selector. La edición conserva Circuit.id.
+
+Alimentación presenta DPMS en kVA, fp adoptado y potencia activa estimada en kW;
+el alcance de potencia Cat. III se muestra separado de la evaluación eléctrica.
+Distingue monofásico, trifásico recomendado y requerido, muestra destinos de los
+receptores trifásicos y conserva recomendaciones concurrentes. La corriente
+hipotética monofásica nunca se etiqueta como corriente seccional trifásica;
+ésta permanece pendiente de distribución de fases. Las referencias pendientes
+se explican dentro de «Ver criterio normativo», sin resolverlas en esta etapa.
+No se incorporan distribución L1/L2/L3, reglas de prestador, viviendas existentes,
+vehículos eléctricos, conductores ni protecciones.

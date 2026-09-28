@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Navegación sin reemplazar el proyecto compartido
 
 enum ProjectStep: Int, Hashable {
-    case project = 1, rooms, circuits, demand
+    case project = 1, rooms, circuits, demand, supply
 
     var name: String {
         switch self {
@@ -11,6 +11,7 @@ enum ProjectStep: Int, Hashable {
         case .rooms: "Ambientes"
         case .circuits: "Circuitos"
         case .demand: "Demanda"
+        case .supply: "Alimentación"
         }
     }
     var title: String {
@@ -19,6 +20,7 @@ enum ProjectStep: Int, Hashable {
         case .rooms: "Ambientes y bocas"
         case .circuits: "Circuitos"
         case .demand: "Demanda del proyecto"
+        case .supply: "Alimentación del proyecto"
         }
     }
     var subtitle: String {
@@ -27,9 +29,10 @@ enum ProjectStep: Int, Hashable {
         case .rooms: "Agregá los ambientes y las bocas (puntos de utilización) que tendrá la instalación."
         case .circuits: "Definí cómo se distribuirán las bocas de la instalación."
         case .demand: "Revisá cómo se obtiene la demanda máxima simultánea."
+        case .supply: "Revisá la potencia del proyecto y el sistema de alimentación."
         }
     }
-    var indicator: String { "Paso \(rawValue) de 4 · \(name)" }
+    var indicator: String { "Paso \(rawValue) de 5 · \(name)" }
 }
 
 struct ProjectFlowState {
@@ -48,7 +51,15 @@ struct ProjectFlowState {
         return error.localizedDescription
     }
 
+    var supplyAssessment: ProjectElectricalAssessment? {
+        guard let result, !form.pointSynchronizationFailed, !form.circuitPlan.circuits.isEmpty else { return nil }
+        return try? ProjectSupplyEngine.assess(plan: form.circuitPlan, grade: result.grade).get()
+    }
+
+    var canContinueToSupply: Bool { supplyAssessment != nil }
+
     mutating func advance() {
+        guard step != .demand || canContinueToSupply else { return }
         guard canContinue, let next = ProjectStep(rawValue: step.rawValue + 1) else { return }
         path.append(next)
     }

@@ -316,6 +316,33 @@ struct DemandEngineTests {
         #expect(DemandEngine.circuit(circuit, points: []).calculation == .failure(.missingDeclaredLoad))
     }
 
+    @Test func vaNatureRoundTripPreservesStoredFactorWithoutApplyingIt() throws {
+        let load = try DeclaredLoad(value: 5000, unit: .voltAmpere)
+        let factor = try PowerFactor(0.8)
+        var circuit = try Circuit(number: 4, type: .acu, destination: "Carga VA",
+                                  declaredLoad: load, powerFactor: factor)
+        let original = circuit
+        let originalID = circuit.id
+        #expect(circuit.supplyNature == .monophase)
+        for nature in [SupplyNature.threePhase, .monophase] {
+            var form = CircuitDemandForm(circuit: circuit)
+            form.supplyNature = nature
+            try form.apply(to: &circuit)
+            #expect(circuit.id == originalID)
+            #expect(circuit.number == original.number)
+            #expect(circuit.type == original.type)
+            #expect(circuit.destination == "Carga VA")
+            #expect(circuit.declaredLoad == load)
+            #expect(circuit.declaredLoad?.value == 5000)
+            #expect(circuit.declaredLoad?.unit == .voltAmpere)
+            #expect(circuit.powerFactor == factor)
+            #expect(circuit.knownDemand == original.knownDemand)
+            #expect(circuit.supplyNature == nature)
+            #expect(try ApparentPowerCalculator.calculate(load, powerFactor: circuit.powerFactor).get().apparentPower.voltAmperes == 5000)
+        }
+        #expect(circuit == original)
+    }
+
     @Test func knownDemandCanBeSetAndCleared() throws {
         var circuit = try Circuit(number: 1, type: .tug)
         var form = CircuitDemandForm(circuit: circuit)

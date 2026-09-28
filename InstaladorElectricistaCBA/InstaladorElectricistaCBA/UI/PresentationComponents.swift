@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Elementos visuales compartidos por los cuatro pasos
+// MARK: - Elementos visuales compartidos por los cinco pasos
 
 enum StatusTone { case complete, pending, invalid }
 
@@ -71,7 +71,7 @@ struct ProjectStepHeader: View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
                 Text(step.indicator).font(.subheadline).foregroundStyle(.secondary)
-                ProgressView(value: Double(step.rawValue), total: 4).accessibilityLabel(step.indicator)
+                ProgressView(value: Double(step.rawValue), total: 5).accessibilityLabel(step.indicator)
                 Text(step.subtitle)
             }.padding(.vertical, 4)
         }
