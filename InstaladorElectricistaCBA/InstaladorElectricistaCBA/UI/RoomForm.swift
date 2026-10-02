@@ -6,7 +6,16 @@ struct RoomForm {
     var dimension = ""
     var iug = "0"
     var tug = "0"
+    var tue = "0"
     var modules = "0"
+
+    // El control opcional escribe sobre la misma proyección, sin estado duplicado.
+    var projectedTUECount: Int {
+        get { Int(tue) ?? 0 }
+        set { tue = String(max(0, newValue)) }
+    }
+    var showsAddTUEAction: Bool { projectedTUECount == 0 }
+    mutating func addTUE() { projectedTUECount = 1 }
 
     enum InputError: LocalizedError {
         case invalidName, invalidDimension, invalidCount, missingDimension, outOfRange
@@ -33,6 +42,7 @@ struct RoomForm {
         var points = UtilizationPoints()
         try points.setCount(parseCount(iug), for: .generalLighting)
         try points.setCount(parseCount(tug), for: .generalUseOutlet)
+        try points.setCount(parseCount(tue), for: .specialUseOutlet)
         if type == .kitchen { try points.setCount(parseCount(modules), for: .fixedApplianceModule) }
         let room = Room(name: name.trimmingCharacters(in: .whitespacesAndNewlines), type: type,
                         area: area, length: length, projectedPoints: points)

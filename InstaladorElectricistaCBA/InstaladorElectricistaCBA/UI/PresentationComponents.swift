@@ -70,6 +70,14 @@ struct ProjectStepHeader: View {
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
+                if step == .supply {
+                    Text(step.title)
+                        .font(.largeTitle.bold())
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 Text(step.indicator).font(.subheadline).foregroundStyle(.secondary)
                 ProgressView(value: Double(step.rawValue), total: 5).accessibilityLabel(step.indicator)
                 Text(step.subtitle)

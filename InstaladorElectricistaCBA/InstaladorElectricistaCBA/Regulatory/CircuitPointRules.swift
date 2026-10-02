@@ -18,6 +18,7 @@ nonisolated enum CircuitPointCompatibilityRule {
         switch kind {
         case .generalLighting: type == .iug ? .compatible : .incompatible
         case .generalUseOutlet: type == .tug ? .compatible : .incompatible
+        case .specialUseOutlet: type == .tue ? .compatible : .incompatible
         }
     }
 }

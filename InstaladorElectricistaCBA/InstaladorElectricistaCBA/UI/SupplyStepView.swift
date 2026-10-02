@@ -1,13 +1,17 @@
 import SwiftUI
 
 struct SupplyStepView: View {
-    let assessment: ProjectElectricalAssessment
-    let circuits: [Circuit]
+    let distribution: PhaseDistributionAssessment
+    @Binding var circuits: [Circuit]
+    private var assessment: ProjectElectricalAssessment { distribution.project }
 
     var body: some View {
         powerSection
         categorySection
         supplySection
+        if PhaseDistributionPresentation.isVisible(assessment.supply.status) {
+            PhaseDistributionView(assessment: distribution, circuits: $circuits)
+        }
     }
 
     private var powerSection: some View {
@@ -71,19 +75,16 @@ struct SupplyStepView: View {
                 LabeledContent(SupplyPresentation.hypotheticalTitle,
                                value: SupplyPresentation.current(supply.hypotheticalMonophaseCurrent.current))
             }
-            Text(current.title).font(.headline)
             if case .determined = supply.sectionalCurrentState {
+                Text(current.title).font(.headline)
                 Text(current.value).font(.title2.bold())
-            } else {
-                StatusMessage(text: current.value, tone: .pending)
-                Text("Para determinar la corriente seccional será necesario distribuir los circuitos monofásicos entre L1, L2 y L3.").font(.footnote)
             }
             Text("Las condiciones particulares de conexión deben verificarse con la distribuidora correspondiente.")
                 .font(.footnote).foregroundStyle(.secondary)
             RegulatoryDisclosure {
                 Text(supply.recommendationSource)
                 Text("Los umbrales son recomendaciones; el receptor trifásico determina una necesidad eléctrica independiente.")
-                Text(supply.sectionalCurrentSource)
+                Text(PhaseSectionalCurrentRule.source)
                 Text("Perfil adoptado: \(PowerPresentation.number(supply.profile.phaseNeutralVolts)) V fase-neutro; \(PowerPresentation.number(supply.profile.phasePhaseVolts)) V fase-fase; \(PowerPresentation.number(supply.profile.frequencyHertz)) Hz. Referencia puntual pendiente de verificación.")
                 Text("La corriente monofásica usa la demanda aparente y la tensión fase-neutro, sin aplicar nuevamente el factor de potencia.")
                 Text("Referencias internas: \(supply.recommendationRuleID) · \(supply.threePhaseLoadRuleID) · \(supply.sectionalCurrentRuleID)").foregroundStyle(.secondary)

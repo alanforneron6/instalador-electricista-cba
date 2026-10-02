@@ -55,6 +55,7 @@ extension UtilizationPoint {
         switch kind {
         case .generalLighting: "Iluminación \(ordinal) · IUG"
         case .generalUseOutlet: "Tomacorriente \(ordinal) · TUG"
+        case .specialUseOutlet: "Tomacorriente especial \(ordinal) · TUE"
         }
     }
 

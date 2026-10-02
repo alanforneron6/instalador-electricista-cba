@@ -38,13 +38,16 @@ nonisolated struct Circuit: Identifiable, Equatable {
     private(set) var powerFactor: PowerFactor?
     private(set) var knownDemand: ApparentPower?
     private(set) var supplyNature: SupplyNature?
-    enum ValidationError: Error { case invalidNumber, loadOnNonACU, knownDemandOnACU, supplyNatureOnNonACU }
+    private(set) var phaseAssignment: Phase?
+    enum ValidationError: Error { case invalidNumber, loadOnNonACU, knownDemandOnACU, supplyNatureOnNonACU, phaseOnThreePhaseLoad }
     init(id: UUID = UUID(), number: Int, type: CircuitType, destination: String = "",
-         declaredLoad: DeclaredLoad? = nil, powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil, supplyNature: SupplyNature? = nil) throws {
+         declaredLoad: DeclaredLoad? = nil, powerFactor: PowerFactor? = nil, knownDemand: ApparentPower? = nil, supplyNature: SupplyNature? = nil, phaseAssignment: Phase? = nil) throws {
         guard number > 0 else { throw ValidationError.invalidNumber }
         guard type == .acu || (declaredLoad == nil && powerFactor == nil) else { throw ValidationError.loadOnNonACU }
         guard type != .acu || knownDemand == nil else { throw ValidationError.knownDemandOnACU }
         guard type == .acu || supplyNature == nil else { throw ValidationError.supplyNatureOnNonACU }
+        guard supplyNature != .threePhase || phaseAssignment == nil else { throw ValidationError.phaseOnThreePhaseLoad }
+        self.phaseAssignment = phaseAssignment
         self.id = id; self.number = number; self.type = type
         self.destination = destination; self.declaredLoad = declaredLoad
         self.powerFactor = powerFactor; self.knownDemand = knownDemand
@@ -55,12 +58,19 @@ nonisolated struct Circuit: Identifiable, Equatable {
     mutating func updateSupplyNature(_ nature: SupplyNature) throws {
         guard type == .acu else { throw ValidationError.supplyNatureOnNonACU }
         supplyNature = nature
+        // Un receptor trifásico no pertenece a una fase; no restauramos una asignación anterior.
+        if nature == .threePhase { phaseAssignment = nil }
+    }
+
+    mutating func updatePhaseAssignment(_ phase: Phase?) throws {
+        guard supplyNature != .threePhase || phase == nil else { throw ValidationError.phaseOnThreePhaseLoad }
+        phaseAssignment = phase
     }
 
     // La edición reutiliza las validaciones y conserva la identidad y las asignaciones.
     mutating func updateDemand(declaredLoad: DeclaredLoad?, powerFactor: PowerFactor?, knownDemand: ApparentPower?) throws {
         self = try Circuit(id: id, number: number, type: type, destination: destination,
-                           declaredLoad: declaredLoad, powerFactor: powerFactor, knownDemand: knownDemand, supplyNature: supplyNature)
+                           declaredLoad: declaredLoad, powerFactor: powerFactor, knownDemand: knownDemand, supplyNature: supplyNature, phaseAssignment: phaseAssignment)
     }
 }
 
@@ -71,12 +81,13 @@ nonisolated struct CircuitSelection: Equatable {
 }
 // Sólo bocas físicas distribuibles; los módulos se conservan en el resumen del ambiente.
 nonisolated enum CircuitPointKind: CaseIterable, Hashable {
-    case generalLighting, generalUseOutlet
+    case generalLighting, generalUseOutlet, specialUseOutlet
 
     var roomKind: UtilizationPointKind {
         switch self {
         case .generalLighting: .generalLighting
         case .generalUseOutlet: .generalUseOutlet
+        case .specialUseOutlet: .specialUseOutlet
         }
     }
 }

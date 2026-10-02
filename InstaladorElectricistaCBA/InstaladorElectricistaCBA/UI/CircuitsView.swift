@@ -62,9 +62,10 @@ struct CircuitsView: View {
                 Text("Asignación de bocas").font(.headline)
                 Text("Las bocas de iluminación general se asignan a circuitos IUG.")
                 Text("Las bocas de tomacorrientes de uso general se asignan a circuitos TUG.")
+                Text("Las bocas de tomacorrientes de uso especial se asignan a circuitos TUE.")
                 Text("AEA 90364-7-770 · Edición 2017 · Clasificación de bocas: 770.7.5, Tabla 770.7.III")
                 Text("Referencia interna: \(CircuitPointCompatibilityRule.ruleID)").foregroundStyle(.secondary)
-                Text("La revisión de mínimos no implica conformidad integral. TUE se puede crear; sus bocas específicas quedan para una etapa posterior.")
+                Text("La revisión de mínimos no implica conformidad integral. Las bocas TUE se proyectan por ambiente como puntos individuales y se asignan exclusivamente a circuitos TUE.")
                 Text("La reducción del máximo de bocas por canalización compartida continúa pendiente; esta versión no modela canalizaciones.")
             }
         }

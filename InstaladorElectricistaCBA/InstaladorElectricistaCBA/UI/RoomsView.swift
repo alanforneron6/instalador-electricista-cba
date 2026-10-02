@@ -25,12 +25,19 @@ struct RoomsView: View {
                     Text(room.type.displayName)
                     if let area = room.area { Text("Superficie: \(area.value.formatted()) m²") }
                     if let length = room.length { Text("Longitud: \(length.value.formatted()) m") }
-                    ForEach(presentation.comparisons, id: \.kind) { item in
+                    ForEach(presentation.minimumComparisons, id: \.kind) { item in
                         VStack(alignment: .leading) {
                             Text(item.kind.inputTitle).font(.subheadline.bold())
                             if let required = item.required { Text("Mínimo requerido: \(item.kind.quantityText(required)) · \(item.kind.projectedText(item.projected))") }
-                            else { Text("Sin mínimo aplicable · \(item.kind.projectedText(item.projected))") }
+                            else { Text("\(item.kind.noMinimumText) · \(item.kind.projectedText(item.projected))") }
                             PointComplianceView(kind: item.kind, status: item.status)
+                        }.padding(.vertical, 4)
+                    }
+                    if room.projectedPoints.count(for: .specialUseOutlet) > 0 {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Bocas adicionales").font(.headline)
+                            Text(UtilizationPointKind.specialUseOutlet.inputTitle)
+                            Text(UtilizationPointKind.specialUseOutlet.projectedText(room.projectedPoints.count(for: .specialUseOutlet)))
                         }.padding(.vertical, 4)
                     }
                     if presentation.completion == .needsInformation {
@@ -100,6 +107,18 @@ private struct AddRoomView: View {
                     }
                     RoomCriterionView(notes: presentation.notes)
                 }
+                Section("Bocas adicionales") {
+                    Text(UtilizationPointKind.specialUseOutlet.inputTitle).font(.subheadline.bold())
+                    if draft.showsAddTUEAction {
+                        Button("Agregar TUE") { draft.addTUE() }
+                    } else {
+                        Stepper(value: $draft.projectedTUECount, in: 0...Int.max) {
+                            Text(UtilizationPointKind.specialUseOutlet.projectedText(draft.projectedTUECount))
+                        }
+                        .accessibilityLabel(UtilizationPointKind.specialUseOutlet.inputTitle)
+                        .accessibilityValue(UtilizationPointKind.specialUseOutlet.projectedText(draft.projectedTUECount))
+                    }
+                }
                 Section {
                     Button {
                         do {
@@ -126,7 +145,7 @@ private struct AddRoomView: View {
             Text(kind.inputTitle).font(.subheadline.bold())
             if let comparison {
                 if let minimum = comparison.required { Text("Mínimo requerido: \(kind.quantityText(minimum))").font(.footnote) }
-                else { Text("Sin mínimo requerido para este ambiente.").font(.footnote) }
+                else { Text(kind.noMinimumText).font(.footnote) }
             } else { Text("Mínimo requerido: pendiente de dimensión").font(.footnote) }
             Stepper(value: count, in: 0...Int.max) { Text(kind.projectedText(count.wrappedValue)) }
                 .accessibilityLabel(kind.inputTitle)

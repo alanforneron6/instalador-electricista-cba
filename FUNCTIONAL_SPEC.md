@@ -515,7 +515,7 @@ implementación actual. Features 001–004 cuentan con pruebas unitarias.
 
 Después de ambientes, el proyecto permite elegir explícitamente la variante de
 circuitos mínimos, completar los tipos faltantes, crear circuitos adicionales,
-seleccionar la posición libre de GE Superior y distribuir las bocas IUG/TUG.
+seleccionar la posición libre de GE Superior y distribuir las bocas IUG/TUG/TUE.
 Los módulos de cocina se validan como equipamiento del ambiente, sin materializar bocas adicionales. El resumen muestra identificación,
 tipo, destino editable, bocas o una carga ACU y potencia declarada con su unidad.
 Las validaciones distinguen faltantes, exceso de bocas, bocas sin asignar,
@@ -540,7 +540,7 @@ no representa conformidad integral. Los cálculos de cargas y DPMS están implem
   fp necesario, se muestra el subtotal resoluble como incompleto y el total
   queda pendiente. Un desbordamiento no se convierte en cero ni infinito válido.
 - Los cálculos individuales usan las bocas asignadas a cada circuito. Si quedan
-  puntos IUG/TUG sin asignar, el total completo devuelve unassignedPoints y sólo
+  puntos IUG/TUG/TUE sin asignar, el total completo devuelve unassignedPoints y sólo
   puede mostrarse el subtotal resoluble como incompleto, sin asignar puntos
   automáticamente. Asignaciones incompatibles o a circuitos inexistentes producen
   incompatibleAssignments. Los módulos de cocina no generan bocas distribuibles ni demanda independiente
@@ -647,7 +647,7 @@ Por ejemplo, 3 bocas TUG + 2 módulos adicionales pueden materializarse como
 El modelo actual conserva el requisito adicional por ambiente; no registra la
 cantidad de módulos dentro de cada boca individual. Se conserva `UtilizationPointKind.fixedApplianceModule`
 para la proyección y validación de mínimos del ambiente. `CircuitPointKind`
-representa exclusivamente las bocas IUG/TUG que se materializan como
+representa exclusivamente las bocas IUG/TUG/TUE que se materializan como
 `UtilizationPoint`. Una cocina con 2 IUG, 3 TUG y 2 módulos genera cinco bocas
 para distribuir; los módulos no crean circuitos, cargas ni demanda independiente.
 No existe una decisión de compatibilidad TUG/TUE/ACU pendiente para esos módulos.
@@ -717,3 +717,83 @@ hipotética monofásica nunca se etiqueta como corriente seccional trifásica;
 se explican dentro de «Ver criterio normativo», sin resolverlas en esta etapa.
 No se incorporan distribución L1/L2/L3, reglas de prestador, viviendas existentes,
 vehículos eléctricos, conductores ni protecciones.
+
+## Feature 006 — Etapa 1: dominio y distribución de fases
+
+Implementación parcial, sin UI. `Circuit.phaseAssignment` admite L1/L2/L3 o nil
+para IUG/TUG/TUE y ACU monofásico. No exige fase al construir proyectos existentes.
+La fase no es la naturaleza del receptor. Cambiar ACU a trifásico borra su fase;
+volver a monofásico no restaura ninguna. Intentar asignar una fase individual a
+un ACU trifásico se rechaza. Editar fase conserva identidad, carga, fp y demás datos;
+la edición de demanda conserva la fase existente.
+
+`PhaseDistributionEngine.assess(plan:grade:)` obtiene una sola evaluación de
+Feature 005 sobre el mismo plan sincronizado. Reutiliza su demanda Feature 004,
+sin cambiar su total ni la decisión de alimentación. Si falla esa evaluación,
+propaga un error estructurado. Si el proyecto es monofásico, conserva su corriente
+seccional sin exigir fases. Para alimentación trifásica, cualquier circuito
+monofásico sin fase devuelve `incomplete` con sus IDs, sin corrientes parciales
+públicas ni Ib definitiva. Se exige asignación incluso si su contribución es cero.
+
+Para distribuir la DPMS GE se adopta la descomposición lineal de cada demanda
+IUG/TUG/TUE por el coeficiente GE ya calculado. Es una decisión de modelado, no
+una fórmula textual atribuida a AEA. ACU toma su demanda considerada existente:
+no se vuelve a convertir su carga, aplicar fp individual ni fpProyecto ni GE.
+
+Cada contribución mono usa el cálculo existente S/V fase-neutro y se suma sólo
+a su fase. El receptor trifásico se considera equilibrado y usa el cálculo
+existente S/(√3 × V fase-fase), sumado a las tres fases. Su potencia se registra
+una sola vez en la traza, no tres. DemandEngine continúa siendo la autoridad
+sobre la demanda. La descomposición está diseñada para conservar la DPMS GE;
+su igualdad con la suma de contribuciones GE se verifica mediante tests con
+tolerancia numérica apropiada para aritmética Double. PhaseDistributionEngine
+no recalcula ni valida contra una segunda DPMS, ni sustituye o redondea la original.
+
+El resultado completo conserva contribuciones, corrientes L1/L2/L3, todas las
+fases máximas y la Ib seccional máxima. Los empates comparan corrientes internas
+sin redondear; no se usa el formato visual para decidirlos. No se infiere un
+porcentaje de desequilibrio ni se impone equilibrio como condición de validez.
+La recomendación del 30 % queda para una futura advertencia, una vez definido
+su método porcentual. No se incorporan automatismos, UI, ITM, conductores, Iz,
+neutro, PE, caída de tensión, canalizaciones, puesta a tierra ni distribuidoras.
+La pantalla de Feature 005 mantiene su comportamiento anterior hasta integrar
+una futura etapa de UI; Feature 006 no se declara completa.
+
+## Feature 006 — Etapa 2: integración en Alimentación
+
+Sin agregar pasos al asistente, Alimentación muestra distribución de fases sólo
+para trifásico recomendado/requerido. Cada circuito mono (IUG/TUG/TUE/ACU) permite
+Sin asignar/L1/L2/L3 mediante un menú de acciones sobre el Circuit compartido.
+La fase se conserva al navegar y desaparece al eliminar el circuito. ACU trifásico
+muestra L1 · L2 · L3 sin selector y su potencia total una sola vez.
+
+El motor expone las potencias simultáneas por circuito también durante distribución
+incompleta, sin exponer corrientes parciales definitivas. La UI no multiplica GE
+ni calcula corrientes. Incompleto muestra cantidad pendiente; completo muestra
+IL1/IL2/IL3, todas las fases máximas e Ib directamente del resultado. La demanda
+superior sigue siendo el total original de Feature 004. Los empates se presentan
+en orden L1/L2/L3 sin desempatar. El monofásico conserva su presentación anterior.
+
+No se implementan porcentaje, advertencia ni bloqueo por desequilibrio, automatismos,
+ITM, conductores, Iz, caída de tensión, neutro/PE ni Feature 007. El método del 30 %
+sigue pendiente. Esta etapa reemplaza la limitación de UI descrita en Etapa 1.
+
+### Extensión acotada: bocas TUE proyectadas
+
+El instalador puede proyectar bocas TUE (specialUseOutlet) por ambiente.
+No se agrega un mínimo TUE a RoomMinimumPointsRule: ausencia de mínimo
+implementado no significa mínimo normativo cero. La UI separa TUE en «Bocas adicionales»: ofrece «Agregar TUE» en cero y un
+control de cantidad cuando es mayor que cero, sin mensajes de mínimo normativo.
+
+Cada boca TUE se materializa en CircuitPlan.points con UUID, ambiente y ordinal
+estables; las asignaciones supervivientes se conservan al sincronizar.
+Compatibilidad exclusiva TUE → TUE; no se aceptan cruces con IUG/TUG/ACU.
+El conteo por circuito deriva de sus puntos asignados, sin contador paralelo.
+Una boca TUE sin asignar produce la incompletitud de demanda existente.
+Los circuitos TUE previos no generan bocas por sí solos ni por su destino.
+
+RULE-DPMS-TUE-001 conserva max(3300 VA, demanda conocida) por circuito,
+no por boca; RULE-CIRCUIT-POINT-LIMIT-001 mantiene su límite independiente.
+Feature 006 consume esa demanda adoptada y su contribución simultánea existente,
+sin cambiar fórmulas por cantidad de bocas. fixedApplianceModule sigue siendo
+equipamiento del ambiente: no se materializa, asigna ni agrega demanda.

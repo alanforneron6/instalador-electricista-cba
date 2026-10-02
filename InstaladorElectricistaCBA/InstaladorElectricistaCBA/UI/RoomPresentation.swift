@@ -27,6 +27,10 @@ struct RoomPresentation {
     let notes: [RoomMinimumPointsRule.Note]
     let completion: RoomCompletion
 
+    var minimumComparisons: [PointComparison] {
+        comparisons.filter { $0.kind != .specialUseOutlet }
+    }
+
     init(room: Room, grade: ElectrificationGrade) {
         do {
             let evaluation = try RoomMinimumPointsRule.evaluate(room, grade: grade)
@@ -68,6 +72,8 @@ struct RoomPresentation {
     static func summary(_ room: Room) -> String {
         let points = room.projectedPoints
         var text = "\(points.count(for: .generalLighting)) IUG · \(points.count(for: .generalUseOutlet)) TUG"
+        let special = points.count(for: .specialUseOutlet)
+        if special > 0 { text += " · \(special) TUE" }
         let fixed = points.count(for: .fixedApplianceModule)
         if fixed > 0 { text += " · \(UtilizationPointKind.fixedApplianceModule.quantityText(fixed)) para equipos fijos" }
         return text
@@ -91,10 +97,13 @@ extension UtilizationPointKind {
     }
 
 
+    var noMinimumText: String { "Sin mínimo establecido por esta regla" }
+
     var inputTitle: String {
         switch self {
         case .generalLighting: "Iluminación general (IUG)"
         case .generalUseOutlet: "Tomacorrientes de uso general (TUG)"
+        case .specialUseOutlet: "Tomacorrientes de uso especial (TUE)"
         case .fixedApplianceModule: "Módulos adicionales para electrodomésticos de ubicación fija"
         }
     }

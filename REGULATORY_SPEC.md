@@ -947,7 +947,9 @@ No se permite cruzar IUG/TUG ni reutilizar puntos TUG en TUE/ACU.
 Los módulos se conservan como cantidades del ambiente; no se individualizan como
 bocas ni tienen compatibilidad de circuito pendiente. Se elimina el anterior
 pendiente, que provenía de tratarlos erróneamente como bocas adicionales.
-Los puntos propios de TUE todavía no están modelados.
+Las bocas TUE se modelan como specialUseOutlet y sólo se asignan a TUE.
+Esta extensión de compatibilidad es una decisión explícita del modelo; no añade
+un mínimo TUE a la Tabla 770.7.III ni promueve referencias pendientes a verificadas.
 
 ## RULE-FREE-CIRCUIT-ELIGIBILITY-001
 
@@ -983,7 +985,7 @@ protección. Complementa RULE-CONDUCTOR-001, sin cambiar su estado pendiente.
 ## Decisiones técnicas de Feature 003
 
 Los resúmenes UtilizationPoints siguen siendo la fuente de cantidades por ambiente.
-La individualización sólo abarca bocas IUG/TUG y conserva UUID, ambiente, tipo y ordinal; al reducir cantidades
+La individualización sólo abarca bocas IUG/TUG/TUE y conserva UUID, ambiente, tipo y ordinal; al reducir cantidades
 retira los ordinales finales, al quitar un ambiente elimina sus puntos, y al quitar
 un circuito deja sus puntos sin asignar. Recalcular no cambia identidades.
 La app continúa en memoria, sin persistencia añadida en esta feature.
@@ -1037,7 +1039,9 @@ Referencia: 770.8.1, Tabla 770.8.I.
 Mínimo TUG = 2200 VA/circuito. Mínimo TUE = 3300 VA/circuito.
 Se adopta el mayor entre mínimo y demanda conocida opcional en VA.
 Estos mínimos no son techos para demandas conocidas. No se aplican a ACU.
-TUE conserva su mínimo aun cuando sus puntos específicos no estén modelados.
+En el modelo de demanda implementado, TUE conserva el mínimo de 3300 VA por
+circuito independientemente de la cantidad de bocas asignadas, incluso cero.
+La cantidad de bocas no multiplica ese mínimo.
 
 ## RULE-SIMULTANEITY-001 — aplicación en Feature 004
 
@@ -1068,7 +1072,7 @@ Total resoluble actual = DPMS GE + suma de demandas consideradas de ACU
 resolubles. Si hay ACU pendientes se muestra como subtotal incompleto y el total
 completo queda pendiente, identificando los circuitos con carga/fp faltante.
 Como condición de integridad del proyecto (no una nueva fórmula normativa),
-los puntos IUG/TUG sin asignar también impiden informar un total completo:
+los puntos IUG/TUG/TUE sin asignar también impiden informar un total completo:
 se devuelve unassignedPoints reutilizando CircuitEngine.validate. Se conserva el
 subtotal de lo resoluble, sin inferir asignaciones ni sumar bocas arbitrariamente.
 Asignaciones incompatibles o a circuitos inexistentes producen incompatibleAssignments.
@@ -1165,3 +1169,61 @@ La DPMS incompleta propaga el error de Feature 004 sin resultados definitivos de
 P, alcance Cat. III, suministro ni Ib. No se reutilizan subtotales como totales.
 La evaluación no sustituye la revisión independiente de mínimos y límites de
 circuitos de Feature 003. No se redondean valores internos.
+
+# FEATURE 006 — Distribución de fases y corriente seccional con UI implementada
+
+## MODEL-PHASE-CONTRIBUTION-001
+
+Estado: decisión de modelado explícita del proyecto, adoptada en Feature 006.
+Descomponer DPMS GE agregada como suma de las demandas adoptadas IUG/TUG/TUE
+multiplicadas individualmente por el coeficiente GE ya calculado en Feature 004.
+La descomposición está diseñada para conservar la DPMS GE. La igualdad con la
+suma de contribuciones GE se verifica mediante tests con tolerancia numérica
+apropiada para aritmética Double. DemandEngine continúa siendo la autoridad
+sobre la demanda; PhaseDistributionEngine no recalcula ni valida contra una
+segunda DPMS, ni reemplaza el total original. No se presenta esta descomposición
+como una fórmula textual AEA.
+ACU conserva su demanda considerada de Feature 004, contada una sola vez;
+no recibe coeficiente GE, fpProyecto ni otra conversión o fp individual.
+
+## RULE-THREE-PHASE-CURRENT-001 — aplicación en Feature 006
+
+Referencia conservada: AEA 90364-7-770:2017, 770.8.3.1, Nota 1.
+Con distribución completa, sumar las contribuciones de corriente por fase y
+adoptar la máxima como Ib seccional, conservando todas las fases empatadas.
+Se reutiliza CALC-SUPPLY-CURRENT-001 y PROFILE-CORDOBA-SUPPLY-001: mono S/V_FN;
+receptor trifásico equilibrado S/(√3 × V_LL), aportado a cada fase. No sustituir
+esta última fórmula por S/3/220 ni multiplicar tres veces su potencia de proyecto.
+Las referencias pendientes del perfil no cambian de estado por esta feature.
+Sin fase en un circuito monofásico, el análisis trifásico queda incompleto;
+no se emite una Ib parcial definitiva. El cálculo monofásico de Feature 005
+permanece independiente y no exige distribución.
+
+## RULE-PHASE-BALANCE-001 — pendiente del método porcentual
+
+AEA 90364-7-770:2017, 770.8.3.4: recomendación documentada de máximo desequilibrio
+entre corrientes de fases <= 30 %. Se conserva la referencia confirmada.
+El método porcentual exacto en este proyecto queda PENDING_INTERPRETATION /
+pendiente de definición documental. Esta etapa no calcula porcentaje, bloquea,
+redistribuye ni clasifica como inválida una distribución por desequilibrio.
+Una futura etapa podrá incorporar una advertencia informativa, conservando la
+libertad de diseño del instalador. No se declara implementado el equilibrio.
+
+### Extensión acotada: bocas TUE proyectadas
+
+El instalador puede proyectar bocas TUE (specialUseOutlet) por ambiente.
+No se agrega un mínimo TUE a RoomMinimumPointsRule: ausencia de mínimo
+implementado no significa mínimo normativo cero. La UI presenta TUE como proyección adicional voluntaria, separada de los mínimos.
+
+Cada boca TUE se materializa en CircuitPlan.points con UUID, ambiente y ordinal
+estables; las asignaciones supervivientes se conservan al sincronizar.
+Compatibilidad exclusiva TUE → TUE; no se aceptan cruces con IUG/TUG/ACU.
+El conteo por circuito deriva de sus puntos asignados, sin contador paralelo.
+Una boca TUE sin asignar produce la incompletitud de demanda existente.
+Los circuitos TUE previos no generan bocas por sí solos ni por su destino.
+
+RULE-DPMS-TUE-001 conserva max(3300 VA, demanda conocida) por circuito,
+no por boca; RULE-CIRCUIT-POINT-LIMIT-001 mantiene su límite independiente.
+Feature 006 consume esa demanda adoptada y su contribución simultánea existente,
+sin cambiar fórmulas por cantidad de bocas. fixedApplianceModule sigue siendo
+equipamiento del ambiente: no se materializa, asigna ni agrega demanda.

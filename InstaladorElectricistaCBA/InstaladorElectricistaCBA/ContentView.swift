@@ -31,8 +31,8 @@ private struct ProjectDestinationView: View {
                     CircuitsView(plan: $flow.form.circuitPlan, rooms: flow.form.rooms, grade: result.grade,
                                  synchronizationFailed: flow.form.pointSynchronizationFailed)
                 case .supply:
-                    if let assessment = flow.supplyAssessment {
-                        SupplyStepView(assessment: assessment, circuits: flow.form.circuitPlan.circuits)
+                    if let distribution = flow.phaseDistribution, case .success(let assessment) = distribution {
+                        SupplyStepView(distribution: assessment, circuits: $flow.form.circuitPlan.circuits)
                     } else {
                         Section { StatusMessage(text: "Alimentación pendiente: volvé a Demanda y completá los datos.", tone: .pending) }
                     }
@@ -55,7 +55,10 @@ private struct ProjectDestinationView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle(step.title)
+            .navigationTitle(step == .supply ? step.name : step.title)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(step == .supply ? .inline : .large)
+            #endif
         } else {
             ContentUnavailableView("Revisá los datos del proyecto", systemImage: "exclamationmark.circle",
                                    description: Text("Volvé al primer paso y revisá el nombre y las superficies."))

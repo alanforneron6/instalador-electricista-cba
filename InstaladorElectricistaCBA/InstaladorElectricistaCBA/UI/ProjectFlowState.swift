@@ -56,6 +56,11 @@ struct ProjectFlowState {
         return try? ProjectSupplyEngine.assess(plan: form.circuitPlan, grade: result.grade).get()
     }
 
+    var phaseDistribution: Result<PhaseDistributionAssessment, PhaseDistributionError>? {
+        guard let result, !form.pointSynchronizationFailed, !form.circuitPlan.circuits.isEmpty else { return nil }
+        return PhaseDistributionEngine.assess(plan: form.circuitPlan, grade: result.grade)
+    }
+
     var canContinueToSupply: Bool { supplyAssessment != nil }
 
     mutating func advance() {

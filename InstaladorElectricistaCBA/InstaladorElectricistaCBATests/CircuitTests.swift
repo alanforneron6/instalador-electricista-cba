@@ -90,7 +90,7 @@ struct CircuitPointTests {
         }
     }
     @Test func moduleKindCannotBeMaterializedAsCircuitPoint() {
-        #expect(CircuitPointKind.allCases.map(\.roomKind) == [.generalLighting, .generalUseOutlet])
+        #expect(CircuitPointKind.allCases.map(\.roomKind) == [.generalLighting, .generalUseOutlet, .specialUseOutlet])
         #expect(!CircuitPointKind.allCases.map(\.roomKind).contains(.fixedApplianceModule))
     }
     @Test func synchronizationPreservesIdentityAndAssignments() throws {
@@ -222,7 +222,8 @@ struct CircuitIntegrityTests {
         let room = try kitchen(modules: 2)
         let evaluation = try RoomMinimumPointsRule.evaluate(room, grade: .medium)
         let comparisons = PointComparison.compare(room.projectedPoints, with: evaluation.requirements)
-        #expect(comparisons.allSatisfy { $0.status == .conforming })
+        #expect(comparisons.filter { $0.kind != .specialUseOutlet }.allSatisfy { $0.status == .conforming })
+        #expect(comparisons.first { $0.kind == .specialUseOutlet }?.status == .notApplicable)
         #expect(comparisons.first { $0.kind == .fixedApplianceModule }?.required == 2)
         #expect(UtilizationPointKind.fixedApplianceModule.quantityText(2) == "2 módulos")
         var plan = CircuitPlan(selection: .init(grade: .medium, variant: .b))
